@@ -21,7 +21,7 @@ public:
     Device();
     virtual ~Device()=0;
     virtual void pollData(unordered_map<string,Value*> data)=0;
-    virtual int setupPort(unordered_map<string,Value*> params)=0;
+    virtual int setupPort(string name, Value* val)=0;
 };
 
 #endif /* DEVICE_H_ */
