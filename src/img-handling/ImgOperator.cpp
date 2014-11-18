@@ -11,7 +11,19 @@ ImgOperator::ImgOperator() { }
 
 ImgOperator::~ImgOperator() { }
 
-int ImgOperator::apply(cv::Mat* source, unordered_map<string,Value*>* results) {
+void ImgOperator::addContainer(ImgOpContainer* executor) {
+    this->containers.insert(executor);
+}
+
+void ImgOperator::remContainer(ImgOpContainer* executor) {
+    this->containers.erase(executor);
+}
+
+int ImgOperator::getContainerCount() {
+    return this->containers.size();
+}
+
+int ImgOperator::apply(cv::Mat* source, unordered_map<int,Value*>* results) {
 
     if (!this->initialized())
         return ERR_UNSET_VALUE;
