@@ -6,17 +6,20 @@
 CPP_SRCS += \
 ../src/img-handling/ImgCapture.cpp \
 ../src/img-handling/ImgOpExecutor.cpp \
-../src/img-handling/ImgOperator.cpp 
+../src/img-handling/ImgOperator.cpp \
+../src/img-handling/OpEncodeJPEG.cpp 
 
 OBJS += \
 ./src/img-handling/ImgCapture.o \
 ./src/img-handling/ImgOpExecutor.o \
-./src/img-handling/ImgOperator.o 
+./src/img-handling/ImgOperator.o \
+./src/img-handling/OpEncodeJPEG.o 
 
 CPP_DEPS += \
 ./src/img-handling/ImgCapture.d \
 ./src/img-handling/ImgOpExecutor.d \
-./src/img-handling/ImgOperator.d 
+./src/img-handling/ImgOperator.d \
+./src/img-handling/OpEncodeJPEG.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

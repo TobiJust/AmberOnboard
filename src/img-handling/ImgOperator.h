@@ -17,6 +17,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+typedef enum {
+    RES_ENCODED_JPEG
+} resType;
+
 using namespace std;
 
 class ImgOperator : public ValContainer{

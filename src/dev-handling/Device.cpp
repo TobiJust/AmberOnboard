@@ -15,3 +15,11 @@ Device::Device() {
 Device::~Device() {
     // TODO Auto-generated destructor stub
 }
+
+
+
+int Device::run() {
+
+    return 0;
+
+}

@@ -11,6 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -82,5 +83,18 @@ public:
 protected:
     string value;
 };
+
+// Concrete ImgResult child for string values.
+class ValVectorUChar : public Value {
+public:
+    ValVectorUChar();
+    virtual ~ValVectorUChar();
+    vector<unsigned char>* getValue();
+    void setValue(vector<unsigned char>* value);
+    virtual ValVectorUChar* clone();
+protected:
+    vector<unsigned char>* value;
+};
+
 
 #endif /* IMGVALUE_H_ */

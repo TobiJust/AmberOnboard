@@ -9,6 +9,7 @@ CPP_SRCS += \
 ../src/ModuleConfiguration.cpp \
 ../src/ModuleIO.cpp \
 ../src/ModuleImgProcessing.cpp \
+../src/ModuleNetworking.cpp \
 ../src/ModuleSensors.cpp \
 ../src/Opt.cpp \
 ../src/ValContainer.cpp \
@@ -21,6 +22,7 @@ OBJS += \
 ./src/ModuleConfiguration.o \
 ./src/ModuleIO.o \
 ./src/ModuleImgProcessing.o \
+./src/ModuleNetworking.o \
 ./src/ModuleSensors.o \
 ./src/Opt.o \
 ./src/ValContainer.o \
@@ -33,6 +35,7 @@ CPP_DEPS += \
 ./src/ModuleConfiguration.d \
 ./src/ModuleIO.d \
 ./src/ModuleImgProcessing.d \
+./src/ModuleNetworking.d \
 ./src/ModuleSensors.d \
 ./src/Opt.d \
 ./src/ValContainer.d \

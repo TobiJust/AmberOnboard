@@ -114,3 +114,25 @@ void ValString::setValue(string value) {
 ValString* ValString::clone() {
     return new ValString(*this);
 }
+
+
+// ValString class definition.
+
+ValVectorUChar::ValVectorUChar() : Value(VAL_STRING) {
+    this->value = NULL;
+}
+
+ValVectorUChar::~ValVectorUChar() { }
+
+vector<unsigned char>* ValVectorUChar::getValue() {
+    return value;
+}
+
+void ValVectorUChar::setValue(vector<unsigned char>* value) {
+    this->value = value;
+    this->initialized=true;
+}
+
+ValVectorUChar* ValVectorUChar::clone() {
+    return new ValVectorUChar(*this);
+}
