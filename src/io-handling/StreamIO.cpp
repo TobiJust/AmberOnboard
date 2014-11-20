@@ -38,7 +38,7 @@ ioStat StreamIO::receive_s(string* target, int bytes) {
 
         // Append freshly read characters and return status indicator.
         target->append(buffer);
-        return OK;
+        return OP_OK;
 
     } else {  // A problem occurred.
         this->active = false;
@@ -59,7 +59,7 @@ ioStat StreamIO::send_s(string message) {
 
     // None of the error/failure flags was set.
     if (outStream->good())
-        return OK;
+        return OP_OK;
 
     else {  // A problem occurred.
         this->active = false;

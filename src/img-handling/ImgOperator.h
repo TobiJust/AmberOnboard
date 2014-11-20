@@ -18,7 +18,8 @@
 #include <unordered_set>
 
 typedef enum {
-    RES_ENCODED_JPEG
+    RES_ENCODED_JPEG,
+    RES_PICTURE_IN_PICTURE
 } resType;
 
 using namespace std;
@@ -30,7 +31,7 @@ public:
     void addContainer(ImgOpContainer* executor);
     void remContainer(ImgOpContainer* executor);
     int getContainerCount();
-    int apply(cv::Mat* source, unordered_map<int,Value*>* results);
+    int apply(const cv::Mat* source, unordered_map<int,Value*>* results);
     virtual int process(const cv::Mat* source, unordered_map<int,Value*>* results)=0;
 protected:
     unordered_set<ImgOpContainer*> containers;

@@ -8,7 +8,7 @@
 #ifndef OPENCODEJPEG_H_
 #define OPENCODEJPEG_H_
 
-#define JPEG_QUALITY "Quality"
+#define ARG_JPEG_QUALITY "Quality"
 
 #include "ImgOperator.h"
 #include "../Value.h"
@@ -23,7 +23,7 @@ class OpEncodeJPEG : public ImgOperator {
 public:
     OpEncodeJPEG();
     virtual ~OpEncodeJPEG();
-    virtual int process(cv::Mat* source, unordered_map<int,Value*>* results);
+    virtual int process(const cv::Mat* source, unordered_map<int,Value*>* results);
 };
 
 #endif /* OPENCODEJPEG_H_ */

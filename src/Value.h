@@ -26,7 +26,7 @@ typedef enum {
 // Abstract Value parent.
 class Value {
 public:
-    Value(int resType);
+    Value(int resType, bool initialized);
     virtual ~Value()=0;
     int getType();
     bool isInitialized();
@@ -40,6 +40,7 @@ protected:
 class ValDouble : public Value {
 public:
     ValDouble();
+    ValDouble(double value);
     virtual ~ValDouble();
     double getValue();
     void setValue(double value);
@@ -52,6 +53,7 @@ protected:
 class ValMat : public Value {
 public:
     ValMat();
+    ValMat(cv::Mat* value);
     virtual ~ValMat();
     cv::Mat* getValue();
     void setValue(cv::Mat* value);
@@ -64,6 +66,7 @@ protected:
 class ValInt : public Value {
 public:
     ValInt();
+    ValInt(int value);
     virtual ~ValInt();
     int getValue();
     void setValue(int value);
@@ -76,6 +79,7 @@ protected:
 class ValString : public Value {
 public:
     ValString();
+    ValString(string value);
     virtual ~ValString();
     string getValue();
     void setValue(string value);
@@ -88,6 +92,7 @@ protected:
 class ValVectorUChar : public Value {
 public:
     ValVectorUChar();
+    ValVectorUChar(vector<unsigned char>* value);
     virtual ~ValVectorUChar();
     vector<unsigned char>* getValue();
     void setValue(vector<unsigned char>* value);

@@ -23,7 +23,7 @@ int ImgOperator::getContainerCount() {
     return this->containers.size();
 }
 
-int ImgOperator::apply(cv::Mat* source, unordered_map<int,Value*>* results) {
+int ImgOperator::apply(const cv::Mat* source, unordered_map<int,Value*>* results) {
 
     if (!this->initialized())
         return ERR_UNSET_VALUE;

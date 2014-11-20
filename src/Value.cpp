@@ -7,9 +7,9 @@
 
 #include "Value.h"
 
-Value::Value(int resType) {
+Value::Value(int resType, bool initialized) {
     this->resType=resType;
-    this->initialized=false;
+    this->initialized=initialized;
 }
 
 Value::~Value() { }
@@ -24,8 +24,13 @@ bool Value::isInitialized() {
 
 // ValDouble class definition.
 
-ValDouble::ValDouble() : Value(VAL_DOUBLE) {
+ValDouble::ValDouble() : Value(VAL_DOUBLE, false) {
     this->value = 0;
+}
+
+ValDouble::ValDouble(double value) : Value(VAL_DOUBLE, true) {
+    this->value = value;
+        this->initialized=true;
 }
 
 ValDouble::~ValDouble() { }
@@ -47,8 +52,13 @@ ValDouble* ValDouble::clone() {
 
 // ValMat class definition.
 
-ValMat::ValMat() : Value(VAL_MAT) {
+ValMat::ValMat() : Value(VAL_MAT, false) {
     this->value = NULL;
+}
+
+ValMat::ValMat(cv::Mat* value) : Value(VAL_MAT, true) {
+    this->value = value;
+        this->initialized=true;
 }
 
 ValMat::~ValMat() { }
@@ -74,8 +84,13 @@ ValMat* ValMat::clone() {
 
 // ValInt class definition.
 
-ValInt::ValInt() : Value(VAL_INT) {
+ValInt::ValInt() : Value(VAL_INT, false) {
     this->value = 0;
+}
+
+ValInt::ValInt(int value) : Value(VAL_INT, true) {
+    this->value = value;
+        this->initialized=true;
 }
 
 ValInt::~ValInt() { }
@@ -96,8 +111,13 @@ ValInt* ValInt::clone() {
 
 // ValString class definition.
 
-ValString::ValString() : Value(VAL_STRING) {
+ValString::ValString() : Value(VAL_STRING, false) {
     this->value = "";
+}
+
+ValString::ValString(string value) : Value(VAL_STRING, true) {
+    this->value = value;
+        this->initialized=true;
 }
 
 ValString::~ValString() { }
@@ -118,8 +138,13 @@ ValString* ValString::clone() {
 
 // ValString class definition.
 
-ValVectorUChar::ValVectorUChar() : Value(VAL_STRING) {
+ValVectorUChar::ValVectorUChar() : Value(VAL_STRING, false) {
     this->value = NULL;
+}
+
+ValVectorUChar::ValVectorUChar(vector<unsigned char>* value) : Value(VAL_STRING, true) {
+    this->value = value;
+        this->initialized=true;
 }
 
 ValVectorUChar::~ValVectorUChar() { }

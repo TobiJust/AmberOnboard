@@ -20,6 +20,7 @@ bool ImgCapture::isActive() {
 
 CamCapture::CamCapture(int camIndex) : ImgCapture(OPENCV_VIDEOCAPTURE){
 
+    this->capture=NULL;
     openCapture(camIndex);
 }
 
@@ -42,18 +43,16 @@ cv::Mat* CamCapture::getFrame() {
 
 bool CamCapture::openCapture(int camIndex) {
 
-    if (this->capture != NULL && this->capture->isOpened()) {
-
-        this->capture->release();
+    if (this->capture != NULL && this->capture->isOpened())
         delete this->capture;
-
-    }
 
     // Initialize image capture object.
     this->capture = new cv::VideoCapture(camIndex);
 
     if(!this->capture->isOpened())
         this->active=false;
+
+
 
     return active;
 

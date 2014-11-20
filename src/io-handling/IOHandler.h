@@ -7,7 +7,7 @@ using namespace std;
 
 typedef enum ioStat{
 
-	OK,
+	OP_OK,
 	OP_UNKNOWN,
 	OP_INACTIVE,
 	OP_STREAM_EOF,

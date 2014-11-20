@@ -27,9 +27,10 @@ class ValContainer {
 public:
     ValContainer();
     virtual ~ValContainer()=0;
-    int setValue(string name, Value* val);
-    int getValue(string name, Value** val);
-    bool initialized();
+    void createValue(string name, Value* val);
+    virtual int setValue(string name, Value* val);
+    virtual int getValue(string name, Value** val);
+    virtual bool initialized();
 protected:
     unordered_map<string,Value*> config;
 };

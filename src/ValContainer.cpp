@@ -7,6 +7,8 @@
 
 #include "ValContainer.h"
 
+#include <iostream>
+
 ValContainer::ValContainer() {
     // TODO Auto-generated constructor stub
 
@@ -14,6 +16,10 @@ ValContainer::ValContainer() {
 
 ValContainer::~ValContainer() {
     // TODO Auto-generated destructor stub
+}
+
+void ValContainer::createValue(string name, Value* value) {
+    config.insert(make_pair(name, value));
 }
 
 int ValContainer::setValue(string name, Value* val) {
@@ -101,7 +107,7 @@ int ValContainer::getValue(string name, Value** val) {
         return ERR_UNSET_VALUE;
 
     // Set Value.
-    *val = valIt->second;
+    *val = valIt->second->clone();
 
     return OK;
 

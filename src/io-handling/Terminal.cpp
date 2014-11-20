@@ -84,7 +84,7 @@ int Terminal::print() {
                 outputString << this->output.front();
                 this->oMutex.unlock();
 
-                if(hndl->send_s(outputString.str()) != OK) {
+                if(hndl->send_s(outputString.str()) != OP_OK) {
                     hndl->setActive(false);
                     return -1;
                 } else {
@@ -121,7 +121,7 @@ int Terminal::scan() {
 
             // Receive next character.
             buf = "";
-            if(hndl->receive_s(&buf) != OK) {
+            if(hndl->receive_s(&buf) != OP_OK) {
 
                 hndl->setActive(false);
                 return -1;
