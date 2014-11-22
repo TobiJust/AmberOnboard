@@ -24,6 +24,7 @@ void ValContainer::createValue(string name, Value* value) {
 
 int ValContainer::setValue(string name, Value* val) {
 
+
     // Get pair iterator for module name.
     auto valIt = config.find(name);
 
@@ -75,15 +76,27 @@ int ValContainer::setValue(string name, Value* val) {
 
     case VAL_STRING:
 
-        // Create and initialize child pointer.
-        ValString *newString, *oldString;
-        newString = dynamic_cast<ValString*>(val);
-        oldString = dynamic_cast<ValString*>(valIt->second);
+            // Create and initialize child pointer.
+            ValString *newString, *oldString;
+            newString = dynamic_cast<ValString*>(val);
+            oldString = dynamic_cast<ValString*>(valIt->second);
 
-        // Set new value.
-        oldString->setValue(newString->getValue());
+            // Set new value.
+            oldString->setValue(newString->getValue());
 
-        break;
+            break;
+
+    case VAL_UCHAR_VECTOR:
+
+            // Create and initialize child pointer.
+            ValVectorUChar *newVector, *oldVector;
+            newVector = dynamic_cast<ValVectorUChar*>(val);
+            oldVector = dynamic_cast<ValVectorUChar*>(valIt->second);
+
+            // Set new value.
+            oldVector->setValue(newVector->getValue());
+
+            break;
 
     default:
         return ERR_UNKNOWN;

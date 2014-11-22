@@ -12,7 +12,7 @@
 OpEncodeJPEG::OpEncodeJPEG() {
 
     // Create argument list.
-    createValue(ARG_JPEG_QUALITY, new ValInt);
+    createValue(ARG_JPEG_QUALITY, new ValInt(50));
 
 }
 

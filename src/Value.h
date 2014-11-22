@@ -20,7 +20,8 @@ typedef enum {
     VAL_DOUBLE,
     VAL_MAT,
     VAL_INT,
-    VAL_STRING
+    VAL_STRING,
+    VAL_UCHAR_VECTOR
 }valType;
 
 // Abstract Value parent.

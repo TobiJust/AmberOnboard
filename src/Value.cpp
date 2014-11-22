@@ -138,11 +138,11 @@ ValString* ValString::clone() {
 
 // ValString class definition.
 
-ValVectorUChar::ValVectorUChar() : Value(VAL_STRING, false) {
+ValVectorUChar::ValVectorUChar() : Value(VAL_UCHAR_VECTOR, false) {
     this->value = NULL;
 }
 
-ValVectorUChar::ValVectorUChar(vector<unsigned char>* value) : Value(VAL_STRING, true) {
+ValVectorUChar::ValVectorUChar(vector<unsigned char>* value) : Value(VAL_UCHAR_VECTOR, true) {
     this->value = value;
         this->initialized=true;
 }

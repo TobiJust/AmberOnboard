@@ -70,6 +70,7 @@ int OpPrepare::process(const cv::Mat* source, unordered_map<int,Value*>* results
     status = this->encoder->apply(p_in_p_Mat, results);
 
     // Clean up.
+    delete p_in_p_Mat;
     tmp.clear();
 
     return status;

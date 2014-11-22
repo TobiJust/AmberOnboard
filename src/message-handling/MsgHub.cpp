@@ -146,7 +146,7 @@ Msg* MsgHub::getMsg(Observer* observer) {
 
                 // Get oldest message and use it for return value.
                 Msg* message = (*queueIt).second->front();
-                Msg* result(message);
+                Msg* result = message->clone();
 
                 // Delete message pointer from list.
                 (*queueIt).second->pop();
