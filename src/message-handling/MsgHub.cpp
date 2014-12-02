@@ -2,7 +2,7 @@
  * MsgHub.cpp
  *
  *  Created on: 31.10.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "MsgHub.h"
@@ -65,7 +65,7 @@ void MsgHub::attachObserverToMsg(Observer* observer, int type) {
     // Check if observer already has message list.
     mutex_Obs_MsgList.lock();
     if ( map_Obs_MsgList.find(observer)==map_Obs_MsgList.end() )
-        map_Obs_MsgList.insert(make_pair(observer, new queue<Msg*>));
+        map_Obs_MsgList.insert(make_pair(observer, new queue<shared_ptr<Msg>>));
     mutex_Obs_MsgList.unlock();
 
 }
@@ -118,7 +118,7 @@ void MsgHub::notifyObservers(int type) {
  *  \param moduleID The id of the module to look up message list for.
  *  \return Message of the module
  */
-Msg* MsgHub::getMsg(Observer* observer) {
+shared_ptr<Msg> MsgHub::getMsg(Observer* observer) {
 
     mutex_Obs_Mutex.lock();
 
@@ -145,8 +145,7 @@ Msg* MsgHub::getMsg(Observer* observer) {
             if((*queueIt).second->size()) {
 
                 // Get oldest message and use it for return value.
-                Msg* message = (*queueIt).second->front();
-                Msg* result = message->clone();
+                shared_ptr<Msg> message = (*queueIt).second->front();
 
                 // Delete message pointer from list.
                 (*queueIt).second->pop();
@@ -164,8 +163,6 @@ Msg* MsgHub::getMsg(Observer* observer) {
 
                     // Erase message instance from list and memory.
                     map_Msg_ObsCount.erase(message);
-                    delete message;
-
                 }
 
                 mutex_Msg_ObsCount.unlock();
@@ -176,7 +173,7 @@ Msg* MsgHub::getMsg(Observer* observer) {
                 (*mutexIt).second->unlock();
 
                 // Return message instance.
-                return result;
+                return message;
 
             }
 
@@ -244,7 +241,7 @@ int MsgHub::getMsgCount(Observer* observer) {
  *  \param moduleID The target modules id.
  *  \param message Pointer to the Message instance.
  */
-void MsgHub::appendMsg(Msg* message) {
+void MsgHub::appendMsg(shared_ptr<Msg> message) {
 
     // Get observers of message type.
     mutex_MsgType_ObsList.lock();
@@ -264,7 +261,7 @@ void MsgHub::appendMsg(Msg* message) {
     // Iterate observers and append message to list.
     for (; observIt != (*pairIt).second.end(); ++observIt){
 
-        cerr << "MsgHub: appending" << endl;
+        cerr << "MsgHub: appending " << (int)message->getType() << endl;
 
         mutex_Obs_Mutex.lock();
 

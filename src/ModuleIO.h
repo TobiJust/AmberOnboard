@@ -27,11 +27,11 @@ public:
     void createTerminal(IOHandler* hndl);
 
 protected:
-    Terminal *term;
+    shared_ptr<Terminal> term;
 
     virtual int countMsgFromChildren();
     virtual int pollMsgFromChildren();
-    virtual Msg* processMsg(Msg*);
+    virtual shared_ptr<Msg> processMsg(shared_ptr<Msg>);
 };
 
 #endif /* MODULEIO_H_ */

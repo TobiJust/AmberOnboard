@@ -12,6 +12,10 @@
 
 #include <string>
 #include <vector>
+#include <memory>
+
+
+#include <mutex>
 
 using namespace std;
 
@@ -31,10 +35,13 @@ public:
     virtual ~Value()=0;
     int getType();
     bool isInitialized();
-    virtual Value* clone()=0;
+    virtual shared_ptr<Value> clone()=0;
 protected:
-    int resType;
     bool initialized;
+private:
+    int resType;
+    static int count;
+    static mutex countLock;
 };
 
 // Concrete ImgResult child for double values.
@@ -45,8 +52,9 @@ public:
     virtual ~ValDouble();
     double getValue();
     void setValue(double value);
-    virtual ValDouble* clone();
-protected:
+    virtual shared_ptr<Value> clone();
+private:
+    virtual shared_ptr<ValDouble> actualClone();
     double value;
 };
 
@@ -54,13 +62,14 @@ protected:
 class ValMat : public Value {
 public:
     ValMat();
-    ValMat(cv::Mat* value);
+    ValMat(shared_ptr<cv::Mat>&);
     virtual ~ValMat();
-    cv::Mat* getValue();
-    void setValue(cv::Mat* value);
-    virtual ValMat* clone();
-protected:
-    cv::Mat* value;
+    shared_ptr<cv::Mat> getValue();
+    void setValue(shared_ptr<cv::Mat>);
+    virtual shared_ptr<Value> clone();
+private:
+    virtual shared_ptr<ValMat> actualClone();
+    shared_ptr<cv::Mat> value;
 };
 
 // Concrete ImgResult child for int values.
@@ -71,8 +80,9 @@ public:
     virtual ~ValInt();
     int getValue();
     void setValue(int value);
-    virtual ValInt* clone();
-protected:
+    virtual shared_ptr<Value> clone();
+private:
+    virtual shared_ptr<ValInt> actualClone();
     int value;
 };
 
@@ -84,8 +94,9 @@ public:
     virtual ~ValString();
     string getValue();
     void setValue(string value);
-    virtual ValString* clone();
-protected:
+    virtual shared_ptr<Value> clone();
+private:
+    virtual shared_ptr<ValString> actualClone();
     string value;
 };
 
@@ -93,13 +104,14 @@ protected:
 class ValVectorUChar : public Value {
 public:
     ValVectorUChar();
-    ValVectorUChar(vector<unsigned char>* value);
+    ValVectorUChar(shared_ptr<vector<unsigned char>> value);
     virtual ~ValVectorUChar();
-    vector<unsigned char>* getValue();
-    void setValue(vector<unsigned char>* value);
-    virtual ValVectorUChar* clone();
-protected:
-    vector<unsigned char>* value;
+    shared_ptr<vector<unsigned char>> getValue();
+    void setValue(shared_ptr<vector<unsigned char>> value);
+    virtual shared_ptr<Value> clone();
+private:
+    virtual shared_ptr<ValVectorUChar> actualClone();
+    shared_ptr<vector<unsigned char>> value;
 };
 
 

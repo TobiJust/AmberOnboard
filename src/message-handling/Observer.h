@@ -2,7 +2,7 @@
  * Observer.h
  *
  *  Created on: 31.10.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef OBSERVER_H_

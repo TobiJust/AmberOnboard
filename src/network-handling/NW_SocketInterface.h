@@ -2,7 +2,7 @@
  * NW_SocketInterface.h
  *
  *  Created on: 21.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef NW_SOCKETINTERFACE_H_
@@ -19,20 +19,26 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 class NW_SocketInterface : public FrameProcessor {
 public:
     NW_SocketInterface();
     virtual ~NW_SocketInterface();
+    uint8_t initialize();
 
-    int initialize();
+protected:
+    virtual uint8_t forward(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet);
+    virtual uint8_t backward(shared_ptr<deque<uint8_t>> packet);
+    virtual uint8_t backward(shared_ptr<vector<uint8_t>> packet,
+            uint8_t *&begin,
+            uint8_t *&end);
 
-    virtual int push(deque<uint8_t>* packet);
-    virtual int pull(deque<uint8_t>* packet);
 private:
-    int socketDesc;
+    timeval step1, step2;
+    int32_t socketDesc;
     struct addrinfo *host_info_list;
-    bool initialized;
+    bool active;
 };
 
 #endif /* NW_SOCKETINTERFACE_H_ */

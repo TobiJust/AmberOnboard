@@ -13,6 +13,9 @@
 #include <string>
 #include <unordered_map>
 
+#include <memory>
+#include <mutex>
+
 typedef enum {
     OK,
     ERR_UNKNOWN,
@@ -27,12 +30,16 @@ class ValContainer {
 public:
     ValContainer();
     virtual ~ValContainer()=0;
-    void createValue(string name, Value* val);
-    virtual int setValue(string name, Value* val);
-    virtual int getValue(string name, Value** val);
+    virtual void createValue(string name, shared_ptr<Value> val);
+    void deleteKey(string name);
+    virtual uint8_t setValue(string name, const shared_ptr<Value> &val);
+    virtual uint8_t getValue(string name, shared_ptr<Value> &val);
     virtual bool initialized();
+    uint8_t getValueCount();
 protected:
-    unordered_map<string,Value*> config;
+    unordered_map<string,shared_ptr<Value>> config;
+    static int count;
+    static mutex countLock;
 };
 
 #endif /* VALCONTAINER_H_ */

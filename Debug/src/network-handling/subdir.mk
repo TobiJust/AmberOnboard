@@ -4,20 +4,26 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/network-handling/DataField.cpp \
 ../src/network-handling/FrameProcessor.cpp \
 ../src/network-handling/NW_SocketInterface.cpp \
+../src/network-handling/NetworkCommunicator.cpp \
 ../src/network-handling/ProcDataFrame.cpp \
 ../src/network-handling/ProcPayload.cpp 
 
 OBJS += \
+./src/network-handling/DataField.o \
 ./src/network-handling/FrameProcessor.o \
 ./src/network-handling/NW_SocketInterface.o \
+./src/network-handling/NetworkCommunicator.o \
 ./src/network-handling/ProcDataFrame.o \
 ./src/network-handling/ProcPayload.o 
 
 CPP_DEPS += \
+./src/network-handling/DataField.d \
 ./src/network-handling/FrameProcessor.d \
 ./src/network-handling/NW_SocketInterface.d \
+./src/network-handling/NetworkCommunicator.d \
 ./src/network-handling/ProcDataFrame.d \
 ./src/network-handling/ProcPayload.d 
 

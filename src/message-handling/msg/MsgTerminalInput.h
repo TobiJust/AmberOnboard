@@ -2,7 +2,7 @@
  * MsgTerminalInput.h
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MSGTERMINALINPUT_H_

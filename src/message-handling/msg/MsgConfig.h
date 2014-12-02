@@ -2,7 +2,7 @@
  * MsgSetConfig.h
  *
  *  Created on: 09.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MSGSETCONFIG_H_

@@ -16,6 +16,7 @@
 #include "Observer.h"
 #include "msg/Msg.h"
 
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -33,9 +34,9 @@ public:
     void detachObserverFromMsg(Observer* observer, int type);
     void notifyObservers(int type);
 
-    Msg* getMsg(Observer*);
+    shared_ptr<Msg> getMsg(Observer*);
     int getMsgCount(Observer*);
-    void appendMsg(Msg* message);
+    void appendMsg(shared_ptr<Msg> message);
 
 private:
 
@@ -44,8 +45,8 @@ private:
 
     // Message observer section.
     unordered_map<int, unordered_set<Observer*>> map_MsgType_ObsList;   // List 1
-    unordered_map<Observer*, queue<Msg*>* > map_Obs_MsgList;            // List 2
-    unordered_map<Msg*, int> map_Msg_ObsCount;                          // List 3
+    unordered_map<Observer*, queue<shared_ptr<Msg>>* > map_Obs_MsgList;            // List 2
+    unordered_map<shared_ptr<Msg>, int> map_Msg_ObsCount;                          // List 3
 
     // Mutex section.
     unordered_map<Observer*, mutex* > map_Obs_Mutex;                    // List 4

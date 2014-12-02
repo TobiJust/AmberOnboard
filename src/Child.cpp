@@ -45,3 +45,40 @@ void Child::notifyObservers() {
     mutex_Observer.unlock();
 
 }
+
+shared_ptr<DataField> Child::in_pop() {
+
+    shared_ptr<DataField> result;
+
+    if(!this->incoming.empty()) {
+
+        result = this->incoming.front();
+        this->incoming.pop();
+
+    }
+
+
+    return result;
+}
+
+void Child::in_push(shared_ptr<DataField> field) {
+    this->incoming.push(field);
+}
+
+shared_ptr<DataField> Child::out_pop() {
+
+    shared_ptr<DataField> result;
+
+    if(!this->outgoing.empty()) {
+
+        result = this->outgoing.front();
+        this->outgoing.pop();
+
+    }
+
+    return result;
+}
+
+void Child::out_push(shared_ptr<DataField> field) {
+    this->outgoing.push(field);
+}

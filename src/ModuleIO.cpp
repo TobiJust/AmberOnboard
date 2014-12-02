@@ -35,8 +35,7 @@ void ModuleIO::createStreamTerminal(istream& input, ostream& output) {
 void ModuleIO::createTerminal(IOHandler* hndl) {
 
     // Create new Terminal instance, using IOHandler reference.
-    term = new Terminal(hndl);
-
+    term.reset(new Terminal(hndl));
     term->attachObserver(this);
 
     // Add child to list of joinable threads.
@@ -64,7 +63,7 @@ int ModuleIO::pollMsgFromChildren() {
 
         string next = term->getInput();
 
-        MsgTerminalInput* input = new MsgTerminalInput(next);
+        shared_ptr<MsgTerminalInput> input(new MsgTerminalInput(next));
         MsgHub::getInstance()->appendMsg(input);
 
         result++;
@@ -74,16 +73,17 @@ int ModuleIO::pollMsgFromChildren() {
     return result;
 }
 
-Msg* ModuleIO::processMsg(Msg* msg) {
+shared_ptr<Msg> ModuleIO::processMsg(shared_ptr<Msg> msg) {
 
-    Msg* result=NULL;
+    shared_ptr<Msg> result=NULL;
 
     switch (msg->getType()) {
     case TYPE_TERM_INPUT:
-        MsgTerminalInput* instance;
-        instance = dynamic_cast<MsgTerminalInput*>(msg);
+    {
+        shared_ptr<MsgTerminalInput> instance = dynamic_pointer_cast<MsgTerminalInput>(msg);
         term->addOutput(instance->getInput());
         break;
+    }
     default:
         break;
     }

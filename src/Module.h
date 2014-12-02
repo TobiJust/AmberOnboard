@@ -13,6 +13,7 @@
 #include "message-handling/Observer.h"
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
@@ -36,22 +37,30 @@ public:
     // Message processing.
     void update();
 
+    void attachChildToMsg(shared_ptr<Child> observer, int type);
+    void detachChildFromMsg(shared_ptr<Child> observer, int type);
+
+    unordered_set<shared_ptr<Child>>::iterator getChildrenBegin(int msgType);
+    unordered_set<shared_ptr<Child>>::iterator getChildrenEnd(int msgType);
+
 protected:
 
     // Data members.
     condition_variable condition;
     mutex waitMutex;
-    queue<Msg*> sendBuf;
-    unordered_set<thread*> childThreads;
+    queue<shared_ptr<Msg>> sendBuf;
+    unordered_set<shared_ptr<Child>> children;
+    unordered_set<shared_ptr<thread>> childThreads;
+    unordered_map<int, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
 
     // Message processing.
     bool msgAvailable();
     virtual int countMsgFromChildren()=0;
     virtual int pollMsgFromChildren()=0;
     int pollMsgFromHub();
-    virtual Msg* processMsg(Msg*)=0;
+    virtual shared_ptr<Msg> processMsg(shared_ptr<Msg>)=0;
 
-    void addChildThread(Child* child);
+    void addChildThread(shared_ptr<Child> child);
 
 };
 

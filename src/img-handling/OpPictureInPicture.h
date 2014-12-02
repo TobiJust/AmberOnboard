@@ -2,13 +2,12 @@
  * OpPictureInPicture.h
  *
  *  Created on: 20.11.2014
- *      Author: administrator
+ *      Author: Askar Massalimov
  */
 
 #ifndef OPPICTUREINPICTURE_H_
 #define OPPICTUREINPICTURE_H_
 
-#define ARG_THUMB   "Thumbnail"
 #define ARG_SCALE   "Scale"
 #define ARG_POS_X   "Pos X"
 #define ARG_POS_Y   "Pos Y"
@@ -26,7 +25,8 @@ class OpPictureInPicture : public ImgOperator {
 public:
     OpPictureInPicture();
     virtual ~OpPictureInPicture();
-    virtual int process(const cv::Mat* source, unordered_map<int,Value*>* results);
+protected:
+    virtual uint8_t process(unordered_map<string,shared_ptr<Value>> &results);
 };
 
 #endif /* OPPICTUREINPICTURE_H_ */

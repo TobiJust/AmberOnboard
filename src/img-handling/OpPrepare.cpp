@@ -2,77 +2,51 @@
  * OpPrepare.cpp
  *
  *  Created on: 20.11.2014
- *      Author: administrator
+ *      Author: Askar Massalimov
  */
 
 #include "OpPrepare.h"
 
 #include <iostream>
 
-OpPrepare::OpPrepare() {
+OpPrepare::OpPrepare() : OpComposite(OP_PREPARE) {
 
-    /*
-    // Create argument list.
-    createValue(ARG_JPEG_QUALITY, new ValInt);
-    createValue(ARG_THUMB, new ValMat);
-    createValue(ARG_SCALE, new ValInt);
-    createValue(ARG_POS_X, new ValInt);
-    createValue(ARG_POS_Y, new ValInt);
-     */
+    shared_ptr<OpEncodeJPEG> encode(new OpEncodeJPEG);
+    shared_ptr<OpPictureInPicture> merge(new OpPictureInPicture);
 
-    this->encoder = new OpEncodeJPEG;
-    this->merger = new OpPictureInPicture;
+    shared_ptr<ImgOperator> ptrEncode(dynamic_pointer_cast<ImgOperator>(encode));
+    shared_ptr<ImgOperator> ptrMerge(dynamic_pointer_cast<ImgOperator>(merge));
 
-}
+    this->op_append(ptrMerge);
+    this->op_append(ptrEncode);
 
-OpPrepare::~OpPrepare() {
-    // TODO Auto-generated destructor stub
-}
-
-int OpPrepare::setValue(string name, Value* val) {
-
-    if (!name.compare(ARG_JPEG_QUALITY))
-        return this->encoder->setValue(name, val);
-
-    return this->merger->setValue(name, val);
+    stringstream cap;
+    cap << ARG_CAPTURE << (int)0;
+    this->connect(RES_PICTURE_IN_PICTURE, cap.str());
 
 }
 
-int OpPrepare::getValue(string name, Value** val) {
+OpPrepare::~OpPrepare() {}
 
-    if (!name.compare(ARG_JPEG_QUALITY))
-        return this->encoder->getValue(name, val);
 
-    return this->merger->getValue(name, val);
 
-}
 
-bool OpPrepare::initialized() {
-    return this->encoder->initialized() && this->merger->initialized();
-}
 
-int OpPrepare::process(const cv::Mat* source, unordered_map<int,Value*>* results) {
 
-    // Temp variable.
-    unordered_map<int,Value*> tmp;
 
-    // Apply operator for picture in picture
-    int status = this->merger->apply(source, &tmp);
 
-    // An error occurred.
-    if (status != OK)
-        return status;
 
-    // Get result Mat.
-    cv::Mat* p_in_p_Mat = dynamic_cast<ValMat*>(tmp.at(RES_PICTURE_IN_PICTURE))->getValue();
 
-    // Apply operation for final result (jpeg-encoded Mat).
-    status = this->encoder->apply(p_in_p_Mat, results);
 
-    // Clean up.
-    delete p_in_p_Mat;
-    tmp.clear();
 
-    return status;
 
-}
+
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
  * ImgCapture.h
  *
  *  Created on: 18.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef IMGCAPTURE_H_
@@ -11,32 +11,37 @@
 #include "opencv2/opencv.hpp"
 #include <opencv2/highgui/highgui.hpp>
 
+#include <memory>
+
 typedef enum {
-    OPENCV_VIDEOCAPTURE
-}capType;
+    CAP_OUTER_CAM,
+    CAP_INNER_CAM,
+}capId;
 
 using namespace std;
 
 class ImgCapture {
 public:
-    ImgCapture(int capType);
+    ImgCapture(uint8_t captureID);
     virtual ~ImgCapture();
-    virtual cv::Mat* getFrame()=0;
+    virtual shared_ptr<cv::Mat> getFrame()=0;
     bool isActive();
-    int getCapType();
+    uint8_t getCapId();
+    void setCapId(uint8_t captureID);
 protected:
     bool active;
-    int capType;
+    uint8_t capIdentifier;
+
 };
 
 class CamCapture : public ImgCapture {
 public:
-    CamCapture(int camIndex);
+    CamCapture(uint8_t camIndex, uint8_t captureID);
     virtual ~CamCapture();
-    virtual cv::Mat* getFrame();
-    bool openCapture(int camIndex);
+    virtual shared_ptr<cv::Mat> getFrame();
+    bool openCapture(uint8_t camIndex);
 protected:
-    cv::VideoCapture* capture;
+    shared_ptr<cv::VideoCapture> capture;
 };
 
 #endif /* IMGCAPTURE_H_ */

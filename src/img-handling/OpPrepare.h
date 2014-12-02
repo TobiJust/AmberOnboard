@@ -2,7 +2,7 @@
  * OpPrepare.h
  *
  *  Created on: 20.11.2014
- *      Author: administrator
+ *      Author: Askar Massalimov
  */
 
 #ifndef OPPREPARE_H_
@@ -14,8 +14,9 @@
 #define ARG_SCALE   "Scale"
 #define ARG_POS_X   "Pos X"
 #define ARG_POS_Y   "Pos Y"
-*/
+ */
 
+#include "OpComposite.h"
 #include "ImgOperator.h"
 #include "OpEncodeJPEG.h"
 #include "OpPictureInPicture.h"
@@ -26,17 +27,10 @@
 #include <string>
 #include <unordered_map>
 
-class OpPrepare : public ImgOperator {
+class OpPrepare : public OpComposite {
 public:
     OpPrepare();
     virtual ~OpPrepare();
-    virtual int process(const cv::Mat* source, unordered_map<int,Value*>* results);
-    virtual int setValue(string name, Value* val);
-    virtual int getValue(string name, Value** val);
-    virtual bool initialized();
-private:
-    OpEncodeJPEG* encoder;
-    OpPictureInPicture* merger;
 };
 
 #endif /* OPPREPARE_H_ */

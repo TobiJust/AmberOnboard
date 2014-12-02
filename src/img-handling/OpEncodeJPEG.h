@@ -2,7 +2,7 @@
  * OpEncodeJPEG.h
  *
  *  Created on: 19.11.2014
- *      Author: administrator
+ *      Author: Askar Massalimov
  */
 
 #ifndef OPENCODEJPEG_H_
@@ -23,7 +23,8 @@ class OpEncodeJPEG : public ImgOperator {
 public:
     OpEncodeJPEG();
     virtual ~OpEncodeJPEG();
-    virtual int process(const cv::Mat* source, unordered_map<int,Value*>* results);
+protected:
+    virtual uint8_t process(unordered_map<string,shared_ptr<Value>> &results);
 };
 
 #endif /* OPENCODEJPEG_H_ */

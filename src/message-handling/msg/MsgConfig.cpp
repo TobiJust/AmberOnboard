@@ -2,7 +2,7 @@
  * MsgSetConfig.cpp
  *
  *  Created on: 09.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "MsgConfig.h"

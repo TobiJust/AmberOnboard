@@ -21,8 +21,54 @@ Module::~Module() {
 
 }
 
-void Module::addChildThread(Child* child) {
+void Module::attachChildToMsg(shared_ptr<Child> child, int type) {
 
+    // Find all observers for given message type.
+    auto pairIt = map_MsgType_Child.find(type);
+
+    // Did not find message type in list, so create it.
+    if (pairIt==map_MsgType_Child.end()){
+
+        // Create set of children.
+        unordered_set<shared_ptr<Child>> children;
+
+        // Insert pair with key='type' and value=freshly created set
+        map_MsgType_Child.insert(make_pair(type, children));
+
+        // Reset iterator.
+        pairIt = map_MsgType_Child.find(type);
+    }
+
+    // Add given child to list.
+    (*pairIt).second.insert(child);
+
+}
+
+void Module::detachChildFromMsg(shared_ptr<Child> child, int type) {
+
+    // Find all observers for given message type.
+    auto pairIt = map_MsgType_Child.find(type);
+
+    // Message type not found, work done.
+    if (pairIt==map_MsgType_Child.end())
+        return;
+
+    // Erase observer from list.
+    (*pairIt).second.erase(child);
+
+}
+
+unordered_set<shared_ptr<Child>>::iterator Module::getChildrenBegin(int msgType) {
+    return map_MsgType_Child.find(msgType)->second.begin();
+}
+
+unordered_set<shared_ptr<Child>>::iterator Module::getChildrenEnd(int msgType) {
+    return map_MsgType_Child.find(msgType)->second.end();
+
+}
+
+void Module::addChildThread(shared_ptr<Child> child) {
+    /*
     // Create child thread on 'run' method.
     thread childThread(&Child::run, child);
 
@@ -30,6 +76,9 @@ void Module::addChildThread(Child* child) {
     childThreads.insert(&childThread);
 
     childThread.detach();
+     */
+
+    children.insert(child);
 
 }
 
@@ -42,11 +91,26 @@ void Module::update() {
 
 int Module::run(){
 
+    auto child = this->children.begin();
+
+    while (child != this->children.end()) {
+
+        // Create child thread on 'run' method.
+        shared_ptr<thread> childThread(new thread(&Child::run, *child));
+
+        // Add thread to list of joinable child threads.
+        childThreads.insert(childThread);
+
+        childThread->detach();
+
+    }
+
+
     // Message counter.
     int msgCount;
 
     // Infinite run loop.
-    while(TRUE){
+    while(true){
 
         msgCount=0;
 
@@ -58,7 +122,7 @@ int Module::run(){
         while (MsgHub::getInstance()->getMsgCount(this))
             msgCount += pollMsgFromHub();
 
-        // Not message received.
+        // No message received.
         if(!msgCount){
 
             // Wait until new data are available.
@@ -93,10 +157,10 @@ int Module::pollMsgFromHub() {
         return 0;
 
     // Poll messagefrom hub.
-    Msg* msg = MsgHub::getInstance()->getMsg(this);
+    shared_ptr<Msg> msg = MsgHub::getInstance()->getMsg(this);
 
     // Process message content and generate answer.
-    Msg* answer = processMsg(msg);
+    shared_ptr<Msg> answer = processMsg(msg);
 
     // Append Answer to message hub, if not NULL.
     if (answer)
