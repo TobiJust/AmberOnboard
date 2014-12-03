@@ -2,7 +2,7 @@
  * StrProcessor.h
  *
  *  Created on: 24.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef STRPROCESSOR_H_

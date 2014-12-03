@@ -2,13 +2,13 @@
  * ModuleImgProcessing.h
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MODULEIMGPROCESSING_H_
 #define MODULEIMGPROCESSING_H_
 
-#define OUTER_CAMERA    "Front"
+#define PREPARE    "Prepare"
 
 #include "Module.h"
 #include "img-handling/OpPrepare.h"
@@ -26,9 +26,9 @@ public:
 protected:
     unordered_map<string, shared_ptr<ImgOpExecutor>> executors;
 
-    virtual int countMsgFromChildren();
-    virtual int pollMsgFromChildren();
-    virtual shared_ptr<Msg> processMsg(shared_ptr<Msg>);
+    virtual uint8_t countMsgFromChildren();
+    virtual uint8_t pollMsgFromChildren();
+    virtual shared_ptr<Message_M2M> processMsg(shared_ptr<Message_M2M>);
 };
 
 #endif /* MODULEIMGPROCESSING_H_ */

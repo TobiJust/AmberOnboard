@@ -8,9 +8,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include src/network-handling/subdir.mk
--include src/message-handling/msg/subdir.mk
--include src/message-handling/subdir.mk
+-include src/nw-handling/subdir.mk
+-include src/msg-handling/subdir.mk
 -include src/io-handling/subdir.mk
 -include src/img-handling/subdir.mk
 -include src/dev-handling/subdir.mk

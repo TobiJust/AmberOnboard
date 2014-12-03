@@ -39,7 +39,6 @@ CamCapture::~CamCapture() {
 shared_ptr<cv::Mat> CamCapture::getFrame() {
 
     /*
-*/
     // Create result Mat.
     shared_ptr<cv::Mat> result(new cv::Mat);
 
@@ -47,6 +46,7 @@ shared_ptr<cv::Mat> CamCapture::getFrame() {
     *(this->capture) >> *result;
 
     return result;
+*/
 
     shared_ptr<cv::Mat> mat(new cv::Mat(1080, 1920, CV_8UC1));
     return mat;

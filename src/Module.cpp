@@ -2,7 +2,7 @@
  * Module.cpp
  *
  *  Created on: 31.10.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 // TODO: Check Mutex usage
@@ -21,7 +21,7 @@ Module::~Module() {
 
 }
 
-void Module::attachChildToMsg(shared_ptr<Child> child, int type) {
+void Module::attachChildToMsg(shared_ptr<Child> child, uint8_t type) {
 
     // Find all observers for given message type.
     auto pairIt = map_MsgType_Child.find(type);
@@ -44,7 +44,7 @@ void Module::attachChildToMsg(shared_ptr<Child> child, int type) {
 
 }
 
-void Module::detachChildFromMsg(shared_ptr<Child> child, int type) {
+void Module::detachChildFromMsg(shared_ptr<Child> child, uint8_t type) {
 
     // Find all observers for given message type.
     auto pairIt = map_MsgType_Child.find(type);
@@ -58,16 +58,16 @@ void Module::detachChildFromMsg(shared_ptr<Child> child, int type) {
 
 }
 
-unordered_set<shared_ptr<Child>>::iterator Module::getChildrenBegin(int msgType) {
+unordered_set<shared_ptr<Child>>::iterator Module::getChildrenBegin(uint8_t msgType) {
     return map_MsgType_Child.find(msgType)->second.begin();
 }
 
-unordered_set<shared_ptr<Child>>::iterator Module::getChildrenEnd(int msgType) {
+unordered_set<shared_ptr<Child>>::iterator Module::getChildrenEnd(uint8_t msgType) {
     return map_MsgType_Child.find(msgType)->second.end();
 
 }
 
-void Module::addChildThread(shared_ptr<Child> child) {
+void Module::addChild(shared_ptr<Child> child) {
     /*
     // Create child thread on 'run' method.
     thread childThread(&Child::run, child);
@@ -96,7 +96,7 @@ int Module::run(){
     while (child != this->children.end()) {
 
         // Create child thread on 'run' method.
-        shared_ptr<thread> childThread(new thread(&Child::run, *child));
+        shared_ptr<thread> childThread(new thread(&Child::run, *child++));
 
         // Add thread to list of joinable child threads.
         childThreads.insert(childThread);
@@ -107,7 +107,7 @@ int Module::run(){
 
 
     // Message counter.
-    int msgCount;
+    uint8_t msgCount;
 
     // Infinite run loop.
     while(true){
@@ -150,17 +150,17 @@ bool Module::msgAvailable() {
 }
 
 
-int Module::pollMsgFromHub() {
+uint8_t Module::pollMsgFromHub() {
 
     // Test whether there are new messages on the hub.
     if( ! (MsgHub::getInstance()->getMsgCount(this)) )
         return 0;
 
     // Poll messagefrom hub.
-    shared_ptr<Msg> msg = MsgHub::getInstance()->getMsg(this);
+    shared_ptr<Message_M2M> msg = MsgHub::getInstance()->getMsg(this);
 
     // Process message content and generate answer.
-    shared_ptr<Msg> answer = processMsg(msg);
+    shared_ptr<Message_M2M> answer = processMsg(msg);
 
     // Append Answer to message hub, if not NULL.
     if (answer)

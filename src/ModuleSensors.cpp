@@ -2,7 +2,7 @@
  * ModuleSensors.cpp
  *
  *  Created on: 09.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ModuleSensors.h"
@@ -16,17 +16,17 @@ ModuleSensors::~ModuleSensors() {
     // TODO Auto-generated destructor stub
 }
 
-int ModuleSensors::countMsgFromChildren() {
+uint8_t ModuleSensors::countMsgFromChildren() {
 
-    int result=0;
+    uint8_t result=0;
 
     return result;
 
 }
 
-int ModuleSensors::pollMsgFromChildren() {
+uint8_t ModuleSensors::pollMsgFromChildren() {
 
-    int result=0;
+    uint8_t result=0;
 
     return result;
 

@@ -2,7 +2,7 @@
  * Value.cpp
  *
  *  Created on: 12.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "Value.h"

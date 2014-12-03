@@ -2,7 +2,7 @@
  * ModuleIO.h
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MODULEIO_H_
@@ -12,7 +12,6 @@
 #include "io-handling/IOHandler.h"
 #include "io-handling/StreamIO.h"
 #include "io-handling/Terminal.h"
-#include "message-handling/msg/MsgTerminalInput.h"
 
 #include <iostream>
 
@@ -29,9 +28,9 @@ public:
 protected:
     shared_ptr<Terminal> term;
 
-    virtual int countMsgFromChildren();
-    virtual int pollMsgFromChildren();
-    virtual shared_ptr<Msg> processMsg(shared_ptr<Msg>);
+    virtual uint8_t countMsgFromChildren();
+    virtual uint8_t pollMsgFromChildren();
+    virtual shared_ptr<Message_M2M> processMsg(shared_ptr<Message_M2M>);
 };
 
 #endif /* MODULEIO_H_ */

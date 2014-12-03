@@ -2,7 +2,7 @@
  * ModuleIO.cpp
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ModuleIO.h"
@@ -10,7 +10,7 @@
 ModuleIO::ModuleIO() {
 
     // Register for message types.
-    MsgHub::getInstance()->attachObserverToMsg(this, TYPE_TERM_INPUT);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_IN);
 
     createStreamTerminal(cin, cout);
 }
@@ -39,14 +39,14 @@ void ModuleIO::createTerminal(IOHandler* hndl) {
     term->attachObserver(this);
 
     // Add child to list of joinable threads.
-    addChildThread(term);
+    addChild(term);
 
 }
 
-int ModuleIO::countMsgFromChildren() {
+uint8_t ModuleIO::countMsgFromChildren() {
 
     // Return value.
-    int result = 0;
+    uint8_t result = 0;
 
     // Count pending strings of standard input.
     result += term->countInput();
@@ -54,16 +54,16 @@ int ModuleIO::countMsgFromChildren() {
     return result;
 }
 
-int ModuleIO::pollMsgFromChildren() {
+uint8_t ModuleIO::pollMsgFromChildren() {
 
     // Return value.
-    int result = 0;
+    uint8_t result = 0;
 
     while(term->countInput()){
 
-        string next = term->getInput();
-
-        shared_ptr<MsgTerminalInput> input(new MsgTerminalInput(next));
+        shared_ptr<ValString> inputString(new ValString(term->getInput()));
+        shared_ptr<M2M_TerminalInput> input(new M2M_TerminalInput);
+        input->setValue(ARG_TERM_IN, inputString);
         MsgHub::getInstance()->appendMsg(input);
 
         result++;
@@ -73,15 +73,21 @@ int ModuleIO::pollMsgFromChildren() {
     return result;
 }
 
-shared_ptr<Msg> ModuleIO::processMsg(shared_ptr<Msg> msg) {
+shared_ptr<Message_M2M> ModuleIO::processMsg(shared_ptr<Message_M2M> msg) {
 
-    shared_ptr<Msg> result=NULL;
+    shared_ptr<Message_M2M> result=NULL;
 
     switch (msg->getType()) {
-    case TYPE_TERM_INPUT:
+    case MSG_TERM_IN:
     {
-        shared_ptr<MsgTerminalInput> instance = dynamic_pointer_cast<MsgTerminalInput>(msg);
-        term->addOutput(instance->getInput());
+        shared_ptr<M2M_TerminalInput> instance = dynamic_pointer_cast<M2M_TerminalInput>(msg);
+        shared_ptr<Value> input;
+        instance->getValue(ARG_TERM_IN, input);
+
+        shared_ptr<M2C_TerminalOutput> outData(new M2C_TerminalOutput);
+        outData->setValue(ARG_TERM_OUT, input);
+
+        term->out_push(dynamic_pointer_cast<Message_M2C>(outData));
         break;
     }
     default:

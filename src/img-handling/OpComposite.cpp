@@ -28,14 +28,16 @@ uint8_t OpComposite::setValue(string name, const shared_ptr<Value> &val) {
 
     uint8_t result=0;
 
-    for (auto leafIt : this->imageOperators) {
+     for (auto leafIt : this->imageOperators) {
 
         // Try setting value.
-        result = leafIt->setValue(name,val);
+        uint8_t tmpResult = leafIt->setValue(name,val);
 
         // Value matched, return.
-        if (result!=ERR_NO_SUCH_KEY && result != OK)
-            return result;
+        if (tmpResult != ERR_NO_SUCH_KEY && tmpResult != OK)
+            return tmpResult;
+        else if (tmpResult == OK)
+            result = tmpResult;
     }
 
     return result;

@@ -2,7 +2,7 @@
  * ModuleConfiguration.cpp
  *
  *  Created on: 07.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ModuleConfiguration.h"
@@ -10,8 +10,8 @@
 ModuleConfiguration::ModuleConfiguration() {
 
     // Register for message types.
-    MsgHub::getInstance()->attachObserverToMsg(this, TYPE_SET_IMGPROC_CONF);
-    MsgHub::getInstance()->attachObserverToMsg(this, TYPE_SET_IO_CONF);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_SET_IMGPROC_CONF);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_SET_IO_CONF);
 
 }
 
@@ -19,7 +19,7 @@ ModuleConfiguration::~ModuleConfiguration() {
     // TODO Auto-generated destructor stub
 }
 
-void ModuleConfiguration::setValue(int confGroup, string name, Opt* option) {
+void ModuleConfiguration::setValue(uint8_t confGroup, string name, Opt* option) {
 
     // Get pair iterator for module name.
     auto modIt = map_Module_Opts.find(confGroup);
@@ -50,7 +50,7 @@ void ModuleConfiguration::setValue(int confGroup, string name, Opt* option) {
     }
 }
 
-Opt* ModuleConfiguration::getValue(int confGroup, string name) {
+Opt* ModuleConfiguration::getValue(uint8_t confGroup, string name) {
 
     // Return value.
     Opt* result = NULL;
@@ -75,7 +75,7 @@ Opt* ModuleConfiguration::getValue(int confGroup, string name) {
     return result;
 }
 
-void ModuleConfiguration::setOption(int confGroup, Opt* opt) {
+void ModuleConfiguration::setOption(uint8_t confGroup, Opt* opt) {
 
     switch (opt->getType()) {
     case OPT_DOUBLE:
@@ -99,8 +99,9 @@ void ModuleConfiguration::setOption(int confGroup, Opt* opt) {
 
 }
 
-Msg* ModuleConfiguration::pollOptions(int confGroup, Msg* msg) {
+Msg* ModuleConfiguration::pollOptions(uint8_t confGroup, Msg* msg) {
 
+    /*
     // Since answer contains the exact same options,
     // the origin message could simple be copied in first place.
     Msg* answer=msg->clone();
@@ -116,42 +117,45 @@ Msg* ModuleConfiguration::pollOptions(int confGroup, Msg* msg) {
         setOption(confGroup, imgProc_Instance->getNextOption());
 
     return answer;
+    */
+
+    return NULL;
 
 }
 
-int ModuleConfiguration::countMsgFromChildren() {
+uint8_t ModuleConfiguration::countMsgFromChildren() {
     return 0;
 }
 
-int ModuleConfiguration::pollMsgFromChildren() {
+uint8_t ModuleConfiguration::pollMsgFromChildren() {
     return 0;
 }
 
 Msg* ModuleConfiguration::processMsg(Msg* msg) {
 
     Msg* result=NULL;
-
+/*
     switch (msg->getType()) {
-    case TYPE_SET_IMGPROC_CONF:
+    case MSG_SET_IMGPROC_CONF:
 
         result=pollOptions(CONF_IMG_PROC, msg);
 
         // Set new message type to actually cause configuration.
-        result->setType(TYPE_DO_IMGPROC_CONF);
+        result->setType(MSG_DO_IMGPROC_CONF);
         break;
 
-    case TYPE_SET_IO_CONF:
+    case MSG_SET_IO_CONF:
 
         result=pollOptions(CONF_IO, msg);
 
         // Set new message type to actually cause configuration.
-        result->setType(TYPE_DO_IO_CONF);
+        result->setType(MSG_DO_IO_CONF);
         break;
 
     default:
         break;
     }
-
+*/
 
     return result;
 }

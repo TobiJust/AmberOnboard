@@ -2,7 +2,7 @@
  * ModuleSensors.h
  *
  *  Created on: 09.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MODULESENSORS_H_
@@ -15,8 +15,8 @@ public:
     ModuleSensors();
     virtual ~ModuleSensors();
 protected:
-    virtual int countMsgFromChildren();
-    virtual int pollMsgFromChildren();
+    virtual uint8_t countMsgFromChildren();
+    virtual uint8_t pollMsgFromChildren();
     virtual Msg* processMsg(Msg*);
 };
 

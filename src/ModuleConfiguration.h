@@ -2,13 +2,13 @@
  * ModuleConfiguration.h
  *
  *  Created on: 07.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MODULECONFIGURATION_H_
 #define MODULECONFIGURATION_H_
 
-#include "message-handling/msg/MsgConfig.h"
+#include "msg-handling/MsgConfig.h"
 #include "Module.h"
 #include "Opt.h"
 
@@ -21,17 +21,17 @@ class ModuleConfiguration : public Module{
 public:
     ModuleConfiguration();
     virtual ~ModuleConfiguration();
-    void setValue(int, string, Opt*);
-    Opt* getValue(int, string);
+    void setValue(uint8_t, string, Opt*);
+    Opt* getValue(uint8_t, string);
 protected:
-    unordered_map<int, unordered_map<string, Opt*>> map_Module_Opts;
+    unordered_map<uint8_t, unordered_map<string, Opt*>> map_Module_Opts;
 
-    virtual int countMsgFromChildren();
-    virtual int pollMsgFromChildren();
+    virtual uint8_t countMsgFromChildren();
+    virtual uint8_t pollMsgFromChildren();
     virtual Msg* processMsg(Msg*);
 
-    void setOption(int, Opt*);
-    virtual Msg* pollOptions(int, Msg*);
+    void setOption(uint8_t, Opt*);
+    virtual Msg* pollOptions(uint8_t, Msg*);
 };
 
 #endif /* MODULECONFIGURATION_H_ */

@@ -2,7 +2,7 @@
  * StreamIO.cpp
  *
  *  Created on: 11.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "StreamIO.h"

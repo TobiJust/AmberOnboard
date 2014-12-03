@@ -2,7 +2,7 @@
  * StreamIO.h
  *
  *  Created on: 11.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef STREAMIO_H_

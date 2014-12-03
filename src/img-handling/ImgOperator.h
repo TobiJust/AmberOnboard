@@ -26,8 +26,8 @@
 
 typedef enum {
     OP_COMPOSITE,
-    OP_ENCODED_JPEG,
     OP_PICTURE_IN_PICTURE,
+    OP_ENCODED_JPEG,
     OP_PREPARE
 } opType;
 

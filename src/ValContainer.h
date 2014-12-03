@@ -2,7 +2,7 @@
  * ValContainer.h
  *
  *  Created on: 14.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef VALCONTAINER_H_

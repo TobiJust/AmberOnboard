@@ -2,7 +2,7 @@
  * Terminal.cpp
  *
  *  Created on: 24.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "Terminal.h"
@@ -44,6 +44,7 @@ string Terminal::getInput() {
 
 }
 
+/*
 void Terminal::addOutput(string str) {
 
     this->oMutex.lock();
@@ -52,12 +53,50 @@ void Terminal::addOutput(string str) {
     this->condition.notify_all();
 
 }
+*/
 
 int Terminal::print() {
 
     // Infinite run loop.
     while (hndl->isActive()) {
 
+        if (this->out_count()) {
+
+            // cerr << "NetworkCommunicator: print while if"<< endl;
+
+            while (this->out_count()) {
+
+                // Get current time
+                time_t  seconds = time(NULL);
+                tm * current = localtime(&seconds);
+
+                // Build output string, containing also the system time.
+                stringstream outputString;
+                outputString << "[";
+                outputString << 1900+current->tm_year << "-";
+                outputString << (1+current->tm_mon < 10 ? "0":"") << 1+current->tm_mon << "-";
+                outputString << (current->tm_mday < 10 ? "0":"") << current->tm_mday << "/";
+                outputString << (current->tm_hour < 10 ? "0":"") << current->tm_hour << ":";
+                outputString << (current->tm_min < 10 ? "0":"") << current->tm_min << ":";
+                outputString << (current->tm_sec < 10 ? "0":"") << current->tm_sec << "] ";
+
+                shared_ptr<Value> output;
+                dynamic_pointer_cast<M2C_TerminalOutput>(this->out_pop())->getValue(ARG_TERM_OUT, output);
+
+                outputString << dynamic_pointer_cast<ValString>(output)->getValue();
+
+                if(hndl->send_s(outputString.str()) != OP_OK) {
+                    hndl->setActive(false);
+                    return -1;
+                }
+
+
+            }
+
+        } else
+            this->out_wait();
+
+/*
         this->oMutex.lock();
 
         if(this->output.size()){
@@ -102,6 +141,7 @@ int Terminal::print() {
             unique_lock<mutex> lock(this->waitMutex);
             while (!this->output.size()) this->condition.wait(lock);
         }
+        */
     }
 
     return 0;

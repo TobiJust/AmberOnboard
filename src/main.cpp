@@ -8,7 +8,6 @@
 /*
 #include "message-handling/MsgHub.h"
 #include "Module.h"
-#include "ModuleIO.h"
 #include "ModuleConfiguration.h"
 
 #include "img-handling/OpEncodeJPEG.h"
@@ -26,6 +25,7 @@
 #include "network-handling/ProcPayload.h"
  */
 
+#include "ModuleIO.h"
 #include "ModuleImgProcessing.h"
 #include "ModuleNetworking.h"
 
@@ -82,6 +82,7 @@ int main() {
     shared_ptr<ValVectorUChar> tmp1(new ValVectorUChar(shared_ptr<vector<unsigned char>>(new vector<unsigned char>)));
     shared_ptr<ValVectorUChar> tmp2(new ValVectorUChar(shared_ptr<vector<unsigned char>>(new vector<unsigned char>)));
 
+    /*
     cerr<< "main: creating NW_SocketInterface, result is ";
 
     shared_ptr<NW_SocketInterface> interface(new NW_SocketInterface);
@@ -109,7 +110,9 @@ int main() {
 
     payload->setSuccessor(frame);
     frame->setSuccessor(interface);
+*/
 
+    /*
     cerr<< "main: Setting up params" << endl;
 
     shared_ptr<Mat> mat(new Mat(480, 640, CV_8UC1));
@@ -146,14 +149,16 @@ int main() {
 
     thread* imgThread = new thread(&ImgOpExecutor::run, executor);
     usleep(500);
-    /*
      */
     /*
      */
 
     try {
 
-        /*
+        {
+
+
+            /*
         for (int i=0; i<200; i++){
             cv::Mat* mat = cam->getFrame();
             cv::imshow("MsgHub", *mat); //display road image
@@ -166,33 +171,46 @@ int main() {
             delete mat;
 
         }
+             */
 
-        ModuleImgProcessing* img = new ModuleImgProcessing;
-        ModuleNetworking* net = new ModuleNetworking;
+            ModuleImgProcessing* img = new ModuleImgProcessing;
+            ModuleIO* io = new ModuleIO;
+            ModuleNetworking* net = new ModuleNetworking;
 
-        usleep(1000000);
+            // usleep(1000000);
 
-        thread* imgThread = new thread(&ModuleImgProcessing::run, img);
-        thread* netThread = new thread(&ModuleNetworking::run, net);
+            thread* imgThread = new thread(&ModuleImgProcessing::run, img);
+            thread* ioThread = new thread(&ModuleIO::run, io);
+            thread* netThread = new thread(&ModuleNetworking::run, net);
 
-        imgThread->join();
-        netThread->join();
+            imgThread->join();
+            ioThread->join();
+            netThread->join();
 
-        delete net;
-        delete img;
-         */
+            // delete img;
+            delete net;
+            delete io;
+            /*
+             */
 
 
 
 
 
+
+
+
+
+
+
+
+
+            /*
+ // _______________________________________________________________________________________
 
         timeval step1, step2, step3, step4;
         uint64_t av1=0, av2=0, av3=0;
-
-
-
-        for (uint64_t i=1; i<1000; i++){
+            for (uint64_t i=1; i<1000; i++){
 
             cerr << "===================== "<< i <<" ====================" << endl;
             cerr<< "main: Receiving" << endl;
@@ -204,7 +222,7 @@ int main() {
             shared_ptr<AcquiredData_In> input;
             while (true) {
 
-                int receivedStatus=payload->pull_new(input);
+                int receivedStatus=payload->pull(input);
 
                 if(receivedStatus == NW_OK) {
                     gettimeofday(&step2, 0);
@@ -217,7 +235,6 @@ int main() {
 
             cerr<< "main: Getting JPEG vector" << endl;
             shared_ptr<Value> result;
-            // while (true) {
 
             executor->getResult(RES_ENCODED_JPEG, result);
             shared_ptr<ValVectorUChar> jpegImg = dynamic_pointer_cast<ValVectorUChar>(result);
@@ -254,11 +271,8 @@ int main() {
                 cerr << "Distance 3 (SEND): " << d3 << " (av is " << av3/i << ") " << endl;
                 cerr << "Distance 3 (ALL): " << d3+d2+d1 << " (av is " << (av1+av2+av3)/i << ") " << endl;
 
-                //                    break;
-
             }
-
-            // }
+             */
 
 
             /*
@@ -287,8 +301,11 @@ int main() {
         delete &(*cap);
 
     }
-    delete &(*cap);
-    imgThread->join();
+
+    // delete &(*cap);
+    // imgThread->join();
+
+
     /*
     ModuleConfiguration* confMod = new ModuleConfiguration();
     ModuleIO* ioModule = new ModuleIO();

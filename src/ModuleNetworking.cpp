@@ -2,7 +2,7 @@
  * ModuleNetworking.cpp
  *
  *  Created on: 19.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ModuleNetworking.h"
@@ -11,6 +11,7 @@
 
 ModuleNetworking::ModuleNetworking() {
 
+    // Real time connection
     shared_ptr<NW_SocketInterface> interface(new NW_SocketInterface);
     interface->setValue(ARG_IP_FAMILY, shared_ptr<ValInt>(new ValInt(AF_UNSPEC)));
     interface->setValue(ARG_SOCK_TYPE, shared_ptr<ValInt>(new ValInt(SOCK_STREAM)));
@@ -29,10 +30,10 @@ ModuleNetworking::ModuleNetworking() {
     this->communicators.push_back(realtime);
 
     // Add child to list of joinable threads.
-    addChildThread(realtime);
+    addChild(realtime);
     realtime->attachObserver(this);
 
-    MsgHub::getInstance()->attachObserverToMsg(this, TYPE_DATA_COMPLETE);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_COMPLETE);
 
 }
 
@@ -40,25 +41,25 @@ ModuleNetworking::~ModuleNetworking() {
     // TODO Auto-generated destructor stub
 }
 
-int ModuleNetworking::countMsgFromChildren() {
+uint8_t ModuleNetworking::countMsgFromChildren() {
 
     // Return value.
-    int result = 0;
+    uint8_t result = 0;
 
     // Iterator for communicators.
     auto commIt = this->communicators.begin();
 
     // Count pending input fields of standard input.
     while (commIt != this->communicators.end())
-        result += (*commIt++)->countInput();
+        result += (*commIt++)->in_count();
 
     return result;
 }
 
-int ModuleNetworking::pollMsgFromChildren() {
+uint8_t ModuleNetworking::pollMsgFromChildren() {
 
     // Return value.
-    int result = 0;
+    uint8_t result = 0;
 
     // Iterator for communicators.
     auto commIt = this->communicators.begin();
@@ -66,16 +67,26 @@ int ModuleNetworking::pollMsgFromChildren() {
     // Poll pending input fields from each communicator.
     while (commIt != this->communicators.end()) {
 
-        while ((*commIt)->countInput()) {
+        while ((*commIt)->in_count()) {
 
-            shared_ptr<DataField> next = (*commIt)->getInput();
+            shared_ptr<Message_M2C> next = (*commIt)->in_pop();
 
             switch (next->getType()) {
-            case DATA_ACQUIRED:
+            case MSG_DATA_ACQUIRED:
             {
-                this->attachChildToMsg(*commIt, TYPE_DATA_COMPLETE);
-                shared_ptr<MsgDataAcquired> acquire(new MsgDataAcquired());
+
+                string next = "Acquired\n";
+                shared_ptr<ValString> inputString(new ValString(next));
+                shared_ptr<M2M_TerminalInput> input(new M2M_TerminalInput);
+                input->setValue(ARG_TERM_IN, inputString);
+                MsgHub::getInstance()->appendMsg(input);
+
+                this->attachChildToMsg(*commIt, MSG_DATA_COMPLETE);
+                shared_ptr<M2M_DataAcquired> acquire(new M2M_DataAcquired());
                 MsgHub::getInstance()->appendMsg(acquire);
+                /*
+                 */
+
                 break;
             }
 
@@ -89,14 +100,13 @@ int ModuleNetworking::pollMsgFromChildren() {
     return result;
 }
 
-shared_ptr<Msg> ModuleNetworking::processMsg(shared_ptr<Msg> msg) {
+shared_ptr<Message_M2M> ModuleNetworking::processMsg(shared_ptr<Message_M2M> msg) {
 
-    shared_ptr<Msg> result=NULL;
+    shared_ptr<Message_M2M> result=NULL;
 
     switch (msg->getType()) {
-    case TYPE_DATA_COMPLETE:
+    case MSG_DATA_COMPLETE:
     {
-
         shared_ptr<Value> image, posE, posN, accX, accY, accZ;
         msg->getValue(ARG_IMG, image);
         msg->getValue(ARG_POS_E, posE);
@@ -105,21 +115,22 @@ shared_ptr<Msg> ModuleNetworking::processMsg(shared_ptr<Msg> msg) {
         msg->getValue(ARG_ACC_Y, accY);
         msg->getValue(ARG_ACC_Z, accZ);
 
-        shared_ptr<AcquiredData_Out> outData(new AcquiredData_Out);
+        shared_ptr<M2C_DataSet> outData(new M2C_DataSet);
         outData->setValue(ARG_IMG, image);
         outData->setValue(ARG_POS_E, posE);
         outData->setValue(ARG_POS_N, posN);
         outData->setValue(ARG_ACC_X, accX);
         outData->setValue(ARG_ACC_Y, accY);
         outData->setValue(ARG_ACC_Z, accZ);
+        outData->setType(MSG_DATA_COMPLETE);
 
-        auto childIt = this->getChildrenBegin(TYPE_DATA_COMPLETE);
-        while (childIt != this->getChildrenEnd(TYPE_DATA_COMPLETE)) {
+        auto childIt = this->getChildrenBegin(MSG_DATA_COMPLETE);
+        while (childIt != this->getChildrenEnd(MSG_DATA_COMPLETE)) {
 
             shared_ptr<NetworkCommunicator> comm = dynamic_pointer_cast<NetworkCommunicator>(*childIt);
-            comm->addOutput(outData);
-            this->detachChildFromMsg(comm, TYPE_DATA_COMPLETE);
-            childIt = this->getChildrenBegin(TYPE_DATA_COMPLETE);
+            comm->out_push(dynamic_pointer_cast<Message_M2C>(outData));
+            this->detachChildFromMsg(comm, MSG_DATA_COMPLETE);
+            childIt = this->getChildrenBegin(MSG_DATA_COMPLETE);
         }
         break;
     }

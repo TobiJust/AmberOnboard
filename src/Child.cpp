@@ -2,10 +2,12 @@
  * Child.cpp
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "Child.h"
+
+#include <iostream>
 
 Child::Child() { }
 
@@ -13,27 +15,27 @@ Child::~Child() { }
 
 void Child::attachObserver(Observer* observer) {
 
-    mutex_Observer.lock();
+    obsMutex.lock();
 
     observers.insert(observer);
 
-    mutex_Observer.unlock();
+    obsMutex.unlock();
 
 }
 
 void Child::detachObserver(Observer* observer) {
 
-    mutex_Observer.lock();
+    obsMutex.lock();
 
     observers.erase(observer);
 
-    mutex_Observer.unlock();
+    obsMutex.unlock();
 
 }
 
 void Child::notifyObservers() {
 
-    mutex_Observer.lock();
+    obsMutex.lock();
 
     // Get iterator for set of observers for this message type
     auto observIt = observers.begin();
@@ -42,32 +44,51 @@ void Child::notifyObservers() {
     for (; observIt != observers.end(); ++observIt)
         (*observIt)->update();
 
-    mutex_Observer.unlock();
+    obsMutex.unlock();
 
 }
 
-shared_ptr<DataField> Child::in_pop() {
+shared_ptr<Message_M2C> Child::in_pop() {
 
-    shared_ptr<DataField> result;
+    this->inMutex.lock();
+
+    shared_ptr<Message_M2C> result;
 
     if(!this->incoming.empty()) {
 
         result = this->incoming.front();
         this->incoming.pop();
-
     }
+
+    this->inMutex.unlock();
 
 
     return result;
 }
 
-void Child::in_push(shared_ptr<DataField> field) {
+void Child::in_push(shared_ptr<Message_M2C> field) {
+
+    this->inMutex.lock();
     this->incoming.push(field);
+    this->inMutex.unlock();
+
+    notifyObservers();
 }
 
-shared_ptr<DataField> Child::out_pop() {
+uint8_t Child::in_count() {
 
-    shared_ptr<DataField> result;
+    this->inMutex.lock();
+    uint8_t result=incoming.size();
+    this->inMutex.unlock();
+
+    return result;
+}
+
+shared_ptr<Message_M2C> Child::out_pop() {
+
+    this->outMutex.lock();
+
+    shared_ptr<Message_M2C> result;
 
     if(!this->outgoing.empty()) {
 
@@ -76,9 +97,31 @@ shared_ptr<DataField> Child::out_pop() {
 
     }
 
+    this->outMutex.unlock();
+
     return result;
 }
 
-void Child::out_push(shared_ptr<DataField> field) {
+void Child::out_push(shared_ptr<Message_M2C> field) {
+
+    this->outMutex.lock();
     this->outgoing.push(field);
+    this->outMutex.unlock();
+
+    this->condition.notify_all();
+}
+
+uint8_t Child::out_count() {
+
+    this->outMutex.lock();
+    uint8_t result=outgoing.size();
+    this->outMutex.unlock();
+
+    return result;
+}
+
+void Child::out_wait() {
+
+    unique_lock<mutex> lock(this->oWait);
+    while (!this->outgoing.size()) this->condition.wait(lock);
 }

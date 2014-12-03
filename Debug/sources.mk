@@ -23,9 +23,8 @@ C_UPPER_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-src/network-handling \
-src/message-handling/msg \
-src/message-handling \
+src/nw-handling \
+src/msg-handling \
 src \
 src/io-handling \
 src/img-handling \

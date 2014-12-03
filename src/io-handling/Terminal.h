@@ -2,7 +2,7 @@
  * Terminal.h
  *
  *  Created on: 24.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef TERMINAL_H_
@@ -28,7 +28,7 @@ public:
 	int run();
 	int print();
 	int scan();
-    void addOutput(string str);
+    // void addOutput(string str);
     int countInput();
     string getInput();
 private:

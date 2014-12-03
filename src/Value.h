@@ -2,7 +2,7 @@
  * ImgValue.h
  *
  *  Created on: 12.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef IMGVALUE_H_

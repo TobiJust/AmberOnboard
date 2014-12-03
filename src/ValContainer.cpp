@@ -2,7 +2,7 @@
  * ValContainer.cpp
  *
  *  Created on: 14.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ValContainer.h"

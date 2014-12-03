@@ -2,7 +2,7 @@
  * IOHandler.cpp
  *
  *  Created on: 12.03.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "IOHandler.h"

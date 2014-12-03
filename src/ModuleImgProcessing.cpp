@@ -2,7 +2,7 @@
  * ModuleImgProcessing.cpp
  *
  *  Created on: 08.11.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #include "ModuleImgProcessing.h"
@@ -13,49 +13,41 @@ CamCapture* ModuleImgProcessing::cam = 0;
 
 ModuleImgProcessing::ModuleImgProcessing() {
 
-    shared_ptr<cv::Mat> temp(new cv::Mat);
-    shared_ptr<ValMat> mat(new ValMat(temp));
-    shared_ptr<ValInt> scale(new ValInt(4));
-    shared_ptr<ValInt> posX(new ValInt(5));
-    shared_ptr<ValInt> posY(new ValInt(5));
-    shared_ptr<ValInt> quali(new ValInt(50));
+    // TODO: Create secondary image capture.
+    // Create objects for image capture.
+    shared_ptr<ImgCapture> cap_Primary(new CamCapture(0,1));
+    shared_ptr<ImgCapture> cap_Secondary(cap_Primary);
 
-    shared_ptr<OpPrepare> prepare(new OpPrepare);
-    cerr << "ModuleImgProcessing: setting ARG_THUMB is "<< prepare->setValue(ARG_THUMB, mat) << endl;
-    cerr << "ModuleImgProcessing: setting ARG_SCALE is "<< prepare->setValue(ARG_SCALE, scale) << endl;
-    cerr << "ModuleImgProcessing: setting ARG_POS_X is "<< prepare->setValue(ARG_POS_X, posX) << endl;
-    cerr << "ModuleImgProcessing: setting ARG_POS_Y is "<<  prepare->setValue(ARG_POS_Y, posY) << endl;
-    cerr << "ModuleImgProcessing: setting ARG_JPEG_QUALITY is "<< prepare->setValue(ARG_JPEG_QUALITY, quali) << endl;
-    /*
+    // Pre-initialize arguments.
+    shared_ptr<cv::Mat> prep_mat(new cv::Mat(480, 640, CV_8UC1));
+    shared_ptr<ValMat> prep_ValMat(new ValMat(prep_mat));
+    shared_ptr<ValInt> prep_ValScale(new ValInt(4));
+    shared_ptr<ValInt> prep_ValPosX(new ValInt(5));
+    shared_ptr<ValInt> prep_ValPosY(new ValInt(5));
+    shared_ptr<ValInt> prep_ValQuali(new ValInt(50));
 
-    shared_ptr<CamCapture> cap(new CamCapture(0));
+    // Create OpPrepare for image preparation and set arguments.
+    // shared_ptr<OpPrepare> prep_Op(new OpPrepare);
+    shared_ptr<OpPrepare> prep_Op(new OpPrepare);
+    shared_ptr<ImgOperator> prep_OpCasted(prep_Op);
+    prep_Op->setValue("Capture0", prep_ValMat);
+    prep_Op->setValue("Capture1", prep_ValMat);
+    prep_Op->setValue(ARG_SCALE, prep_ValScale);
+    prep_Op->setValue(ARG_POS_X, prep_ValPosX);
+    prep_Op->setValue(ARG_POS_Y, prep_ValPosY);
+    prep_Op->setValue(ARG_JPEG_QUALITY, prep_ValQuali);
 
-    cerr << "ModuleImgProcessing........................." << endl;
-    cv::namedWindow("ModuleImgProcessing", CV_WINDOW_NORMAL); //create window
-    cv::Mat* mat1 = cap->getFrame();
-    for (int i=0; i<200; i++){
-        cv::Mat* mat1 = cap->getFrame();
-        cv::imshow("ModuleImgProcessing", *mat1); //display road image
-        if (cv::waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
-        {
-            cout << "esc key is pressed by user" << endl;
-            break;
-        }
+    // Create and set up executor for image preparation.
+    shared_ptr<ImgOpExecutor> prep_Exe(new ImgOpExecutor);
+    prep_Exe->cap_append(cap_Primary);
+    prep_Exe->cap_append(cap_Secondary);
+    prep_Exe->op_append(prep_OpCasted);
 
-        delete mat1;
-    }
+    // Finally add executors to the lists of children.
+    this->addChild(prep_Exe);
+    this->executors.insert(make_pair(PREPARE, prep_Exe));
 
-    // cam=new CamCapture(0);
-
-    shared_ptr<ImgOpExecutor> exe(new ImgOpExecutor(cap));
-    exe->addOp(prepare);
-    this->executors.insert(make_pair(OUTER_CAMERA, exe));
-
-    // Add child to list of joinable threads.
-    addChildThread(exe);
-    */
-
-    MsgHub::getInstance()->attachObserverToMsg(this, TYPE_DATA_ACQUIRED);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_ACQUIRED);
 
 }
 
@@ -69,82 +61,72 @@ ModuleImgProcessing::~ModuleImgProcessing() {
         if (cap != NULL)
             delete cap;
     }
-    */
+     */
 }
 
-int ModuleImgProcessing::countMsgFromChildren() {
+uint8_t ModuleImgProcessing::countMsgFromChildren() {
 
     // Children do not return any messages.
     return 0;
 }
 
-int ModuleImgProcessing::pollMsgFromChildren() {
+uint8_t ModuleImgProcessing::pollMsgFromChildren() {
 
     // Children do not return any messages..
     return 0;
 }
 
-shared_ptr<Msg> ModuleImgProcessing::processMsg(shared_ptr<Msg> msg) {
-
-    cerr << "ModuleImgProcessing: message incoming" << endl;
+shared_ptr<Message_M2M> ModuleImgProcessing::processMsg(shared_ptr<Message_M2M> msg) {
 
     // Uninitialized return value.
-    shared_ptr<Msg> result;
+    shared_ptr<Message_M2M> result;
 
     // Switch incoming message.
     switch (msg->getType()) {
-    case TYPE_DATA_ACQUIRED:
+    case MSG_DATA_ACQUIRED:
     {
 
-        cerr << "ModuleImgProcessing: Here 1" << endl;
+        shared_ptr<M2M_DataSet> set(new M2M_DataSet);
 
-        shared_ptr<MsgDataSet> set(new MsgDataSet);
+        shared_ptr<ImgOpExecutor> prep_Exe = this->executors.find(PREPARE)->second;
 
-        shared_ptr<ImgOpExecutor> exe = this->executors.find(OUTER_CAMERA)->second;
+        if (prep_Exe) {
 
-        cerr << "ModuleImgProcessing: Here 2, exe is now " << exe << endl;
+            shared_ptr<Value> imgResult;
 
-        if (exe)
+            if (prep_Exe->getResult(RES_ENCODED_JPEG, imgResult))
+                return result;
+            else {
+
+                shared_ptr<ValVectorUChar> jpegImg = dynamic_pointer_cast<ValVectorUChar>(imgResult);
+                set->setValue(ARG_IMG, jpegImg);
+            }
+        } else
             set->setValue(ARG_IMG, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-        else {
 
-            cerr << "ModuleImgProcessing: Here 2.0" << endl;
+        // TODO: delete this
 
-            // Get last processed JPEG as raw Value.
-            shared_ptr<Value> image;
-           // bool status = exe->getResultold(RES_ENCODED_JPEG, image);
+        shared_ptr<vector<uint8_t>> tmp(new vector<uint8_t>);
+        tmp->push_back('-');
+        tmp->push_back('-');
+        shared_ptr<ValVectorUChar> tmpValue(new ValVectorUChar(tmp));
 
-            cerr << "ModuleImgProcessing: Here 2.1 image is " << (image)->getType() << endl;
+        set->setValue(ARG_POS_E, tmpValue);
+        set->setValue(ARG_POS_N, tmpValue);
+        set->setValue(ARG_ACC_X, tmpValue);
+        set->setValue(ARG_ACC_Y, tmpValue);
+        set->setValue(ARG_ACC_Z, tmpValue);
 
-            // Create ValVectorUChar reference to image data.
-            shared_ptr<ValVectorUChar> matrix = dynamic_pointer_cast<ValVectorUChar>(image);
-         //   if (status) set->setValue(ARG_IMG, matrix);
-
-            cerr << "ModuleImgProcessing: Here 2.2 - image size is" << dynamic_pointer_cast<ValVectorUChar>(image)->getValue()->size() << endl;
-
-        }
-
-        cerr << "ModuleImgProcessing: Here 3" << endl;
-
-        set->setValue(ARG_POS_E, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-        set->setValue(ARG_POS_N, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-        set->setValue(ARG_ACC_X, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-        set->setValue(ARG_ACC_Y, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-        set->setValue(ARG_ACC_Z, shared_ptr<ValVectorUChar>(new ValVectorUChar));
-
-        cerr << "ModuleImgProcessing: Here 4" << endl;
-
-        set->setType(TYPE_DATA_COMPLETE);
+        set->setType(MSG_DATA_COMPLETE);
 
         // MsgHub::getInstance()->appendMsg(set);
+        result = set;
 
         break;
     }
     default:
         break;
     }
-
-    cerr << "ModuleImgProcessing: Here 1" << endl;
 
     return result;
 }

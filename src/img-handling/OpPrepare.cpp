@@ -11,14 +11,11 @@
 
 OpPrepare::OpPrepare() : OpComposite(OP_PREPARE) {
 
-    shared_ptr<OpEncodeJPEG> encode(new OpEncodeJPEG);
-    shared_ptr<OpPictureInPicture> merge(new OpPictureInPicture);
+    shared_ptr<ImgOperator> encode(new OpEncodeJPEG);
+    shared_ptr<ImgOperator> merge(new OpPictureInPicture);
 
-    shared_ptr<ImgOperator> ptrEncode(dynamic_pointer_cast<ImgOperator>(encode));
-    shared_ptr<ImgOperator> ptrMerge(dynamic_pointer_cast<ImgOperator>(merge));
-
-    this->op_append(ptrMerge);
-    this->op_append(ptrEncode);
+    this->op_append(merge);
+    this->op_append(encode);
 
     stringstream cap;
     cap << ARG_CAPTURE << (int)0;

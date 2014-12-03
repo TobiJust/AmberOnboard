@@ -2,15 +2,15 @@
  * Module.h
  *
  *  Created on: 31.10.2014
- *      Author: administrator
+ *      Author: Daniel Wagenknecht
  */
 
 #ifndef MODULE_H_
 #define MODULE_H_
 
 #include "Child.h"
-#include "message-handling/MsgHub.h"
-#include "message-handling/Observer.h"
+#include "msg-handling/MsgHub.h"
+#include "msg-handling/Observer.h"
 
 #include <condition_variable>
 #include <memory>
@@ -37,11 +37,11 @@ public:
     // Message processing.
     void update();
 
-    void attachChildToMsg(shared_ptr<Child> observer, int type);
-    void detachChildFromMsg(shared_ptr<Child> observer, int type);
+    void attachChildToMsg(shared_ptr<Child> observer, uint8_t type);
+    void detachChildFromMsg(shared_ptr<Child> observer, uint8_t type);
 
-    unordered_set<shared_ptr<Child>>::iterator getChildrenBegin(int msgType);
-    unordered_set<shared_ptr<Child>>::iterator getChildrenEnd(int msgType);
+    unordered_set<shared_ptr<Child>>::iterator getChildrenBegin(uint8_t msgType);
+    unordered_set<shared_ptr<Child>>::iterator getChildrenEnd(uint8_t msgType);
 
 protected:
 
@@ -51,16 +51,16 @@ protected:
     queue<shared_ptr<Msg>> sendBuf;
     unordered_set<shared_ptr<Child>> children;
     unordered_set<shared_ptr<thread>> childThreads;
-    unordered_map<int, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
+    unordered_map<uint8_t, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
 
     // Message processing.
     bool msgAvailable();
-    virtual int countMsgFromChildren()=0;
-    virtual int pollMsgFromChildren()=0;
-    int pollMsgFromHub();
-    virtual shared_ptr<Msg> processMsg(shared_ptr<Msg>)=0;
+    virtual uint8_t countMsgFromChildren()=0;
+    virtual uint8_t pollMsgFromChildren()=0;
+    uint8_t pollMsgFromHub();
+    virtual shared_ptr<Message_M2M> processMsg(shared_ptr<Message_M2M>)=0;
 
-    void addChildThread(shared_ptr<Child> child);
+    void addChild(shared_ptr<Child> child);
 
 };
 
