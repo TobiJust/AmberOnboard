@@ -46,13 +46,24 @@
 using namespace std;
 using namespace cv;
 
-shared_ptr<CamCapture> cap(new CamCapture(0,1));
+// shared_ptr<CamCapture> cap(new CamCapture(0,1));
+
+bool terminating = false;
 
 void sig_handler(int signo)
 {
-    printf("received SIGINT\n");
-    delete &(*cap);
-    exit(0);
+    if(!terminating) {
+        printf("received SIGINT\n");
+        printf("shutting down now\n");
+
+        shared_ptr<M2M_TermBroad> broadcast(new M2M_TermBroad);
+        MsgHub::getInstance()->appendMsg(broadcast);
+        // delete &(*cap);
+        // sleep(3);
+        // exit(0);
+
+        terminating=true;
+    }
 }
 
 int main() {
@@ -110,7 +121,7 @@ int main() {
 
     payload->setSuccessor(frame);
     frame->setSuccessor(interface);
-*/
+     */
 
     /*
     cerr<< "main: Setting up params" << endl;
@@ -173,23 +184,33 @@ int main() {
         }
              */
 
-            ModuleImgProcessing* img = new ModuleImgProcessing;
-            ModuleIO* io = new ModuleIO;
-            ModuleNetworking* net = new ModuleNetworking;
+            cerr << "------------------- try entered --------------------" <<endl;
 
-            // usleep(1000000);
+            shared_ptr<ModuleImgProcessing> img(new ModuleImgProcessing);
+            // sleep(1);
+            shared_ptr<ModuleIO> io(new ModuleIO);
+            // sleep(1);
+            shared_ptr<ModuleNetworking> net(new ModuleNetworking);
+            // sleep(1);
 
-            thread* imgThread = new thread(&ModuleImgProcessing::run, img);
-            thread* ioThread = new thread(&ModuleIO::run, io);
-            thread* netThread = new thread(&ModuleNetworking::run, net);
 
-            imgThread->join();
-            ioThread->join();
-            netThread->join();
+            shared_ptr<thread> imgThread(new thread(&ModuleImgProcessing::run, img));
+            usleep(50000);
+            shared_ptr<thread> ioThread(new thread(&ModuleIO::run, io));
+            shared_ptr<thread> netThread(new thread(&ModuleNetworking::run, net));
+
+            if(imgThread->joinable())
+                imgThread->join();
+            if(ioThread->joinable())
+                ioThread->join();
+            if(netThread->joinable())
+                netThread->join();
+
+            sleep(5);
 
             // delete img;
-            delete net;
-            delete io;
+            // delete net;
+            // delete io;
             /*
              */
 
@@ -298,7 +319,7 @@ int main() {
         }
     }catch ( const std::exception& e ) {
         cerr << "033[1;31mException\033[0m: " << e.what() << endl;
-        delete &(*cap);
+        // delete &(*cap);
 
     }
 

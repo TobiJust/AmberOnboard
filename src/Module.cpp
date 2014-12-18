@@ -10,14 +10,26 @@
 #include "Module.h"
 
 #include <iostream>
+#include <unistd.h>
+#include <chrono>
 
-Module::Module() { }
+Module::Module() {
+    cerr << "\033[1;31m Module \033[0m: created ("<<this<<")" << endl;
+    this->terminating=false;
+}
 
 Module::~Module() {
 
-    for (auto it = childThreads.begin();
-            it != childThreads.end(); it++)
-        (*it)->join();
+    cerr << "\033[1;31m Module \033[0m: deleted ("<<this<<")" << endl;
+
+    // Call terminate on all children.
+    for (auto termIt : this->children)
+        termIt->terminate();
+
+    // Join corresponding threads.
+    for (auto joinIt : this->childThreads)
+        if(joinIt->joinable())
+            joinIt->join();
 
 }
 
@@ -84,9 +96,22 @@ void Module::addChild(shared_ptr<Child> child) {
 
 void Module::update() {
 
+    cerr << "\033[1;31m Module \033[0m: updating ("<<this<<")" << endl;
+
     // Inform module about pending messages.
     this->condition.notify_all();
 
+}
+
+void Module::terminate() {
+
+    cerr << "Module: terminate invoked!" << endl;
+
+    this->terminating=true;
+}
+
+bool Module::isTerminating() {
+    return this->terminating;
 }
 
 int Module::run(){
@@ -105,12 +130,15 @@ int Module::run(){
 
     }
 
+    // usleep(500000);
 
     // Message counter.
     uint8_t msgCount;
 
     // Infinite run loop.
-    while(true){
+    while(!terminating){
+
+        cerr << "\033[1;31m Module \033[0m: not terminatind.................. ("<<this<<")" << endl;
 
         msgCount=0;
 
@@ -122,16 +150,34 @@ int Module::run(){
         while (MsgHub::getInstance()->getMsgCount(this))
             msgCount += pollMsgFromHub();
 
+        cerr << "\033[1;31m Module \033[0m: msg count " << (int32_t)msgCount << " ("<<this<<")" << endl;
+
         // No message received.
         if(!msgCount){
 
+            cerr << "\033[1;31m Module \033[0m: sleeping now ("<<this<<")" << endl;
+
             // Wait until new data are available.
             unique_lock<mutex> lock(this->waitMutex);
-            while (!this->msgAvailable()) this->condition.wait(lock);
+            while (!this->msgAvailable()) {
+                // this->condition.wait(lock);
+                this->condition.wait_for(lock, chrono::milliseconds(100));
+            }
+
+            cerr << "\033[1;31m Module \033[0m: Oh, a new message ("<<this<<")" << endl;
 
         }
 
     }
+
+    // Call terminate on all children.
+    for (auto termIt : this->children)
+        termIt->terminate();
+
+    // Join corresponding threads.
+    for (auto joinIt : this->childThreads)
+        if(joinIt->joinable())
+            joinIt->join();
 
     return 0;
 

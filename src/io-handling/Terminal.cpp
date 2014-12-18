@@ -9,12 +9,13 @@
 
 #include <iostream>
 
-Terminal::Terminal(IOHandler* handler) {
-    this->hndl = handler->clone();
+Terminal::Terminal(shared_ptr<IOHandler> handler) {
+    cerr << "\033[1;31m Terminal \033[0m: created ("<<this<<")" << endl;
+    this->hndl=handler;
 }
 
 Terminal::~Terminal() {
-    delete this->hndl;
+    cerr << "\033[1;31m Terminal \033[0m: deleted ("<<this<<")" << endl;
 }
 
 void Terminal::addInput(string str) {
@@ -53,12 +54,12 @@ void Terminal::addOutput(string str) {
     this->condition.notify_all();
 
 }
-*/
+ */
 
 int Terminal::print() {
 
     // Infinite run loop.
-    while (hndl->isActive()) {
+    while (hndl->isActive() && !this->isTerminating()) {
 
         if (this->out_count()) {
 
@@ -96,7 +97,7 @@ int Terminal::print() {
         } else
             this->out_wait();
 
-/*
+        /*
         this->oMutex.lock();
 
         if(this->output.size()){
@@ -141,8 +142,10 @@ int Terminal::print() {
             unique_lock<mutex> lock(this->waitMutex);
             while (!this->output.size()) this->condition.wait(lock);
         }
-        */
+         */
     }
+
+    cerr << "Terminal: print terminated" << endl;
 
     return 0;
 }
@@ -150,14 +153,14 @@ int Terminal::print() {
 int Terminal::scan() {
 
     // Infinite run loop.
-    while (hndl->isActive()) {
+    while (hndl->isActive()  && !this->isTerminating()) {
 
         // The command string object.
         string input = "";
         string buf;
 
         // Receive all characters until new line.
-        while (true) {
+        while (!this->isTerminating()) {
 
             // Receive next character.
             buf = "";
@@ -177,12 +180,14 @@ int Terminal::scan() {
 
         }
 
-        if(input.length()){
+        if(input.length()  && !this->isTerminating()){
 
             addInput(input);
 
         }
     }
+
+    cerr << "Terminal: scan terminated" << endl;
 
     return 0;
 }
@@ -192,8 +197,14 @@ int Terminal::run() {
     thread* rcvThread = new thread(&Terminal::scan, this);
     thread* sendThread = new thread(&Terminal::print, this);
 
-    rcvThread->join();
-    sendThread->join();
+    this->term_wait();
+
+    this->hndl->setActive(false);
+
+    if (rcvThread->joinable())
+        rcvThread->join();
+    if (sendThread->joinable())
+        sendThread->join();
 
     hndl->closeIO();
 

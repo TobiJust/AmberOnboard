@@ -23,7 +23,7 @@ using namespace std;
 
 class Terminal : public Child {
 public:
-	Terminal(IOHandler* handler);
+	Terminal(shared_ptr<IOHandler> handler);
 	virtual ~Terminal();
 	int run();
 	int print();
@@ -33,7 +33,7 @@ public:
     string getInput();
 private:
 	queue<string> input, output;
-	IOHandler* hndl;
+	shared_ptr<IOHandler> hndl;
 	mutex waitMutex, iMutex, oMutex;
 	condition_variable condition;
 

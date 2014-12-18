@@ -16,12 +16,15 @@ ImgOpExecutor::ImgOpExecutor() { }
 
 ImgOpExecutor::ImgOpExecutor(shared_ptr<ImgCapture> &capture) {
 
+    cerr << "\033[1;31m ImgOpExecutor \033[0m: created ("<<this<<")" << endl;
+
     if (capture)
         this->imageCaptures.push_back(capture);
 }
 
 ImgOpExecutor::~ImgOpExecutor() {
 
+    cerr << "\033[1;31m ImgOpExecutor \033[0m: deleted ("<<this<<")" << endl;
 }
 
 uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> &op) {
@@ -314,11 +317,10 @@ uint8_t ImgOpExecutor::execute() {
 
 int ImgOpExecutor::run() {
 
-    while (true) {
+    while (!this->isTerminating()) {
 
         execute();
         notifyObservers();
-
     }
 
     return 0;

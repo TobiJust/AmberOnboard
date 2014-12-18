@@ -7,7 +7,11 @@
 
 #include "ModuleConfiguration.h"
 
+#include <iostream>
+
 ModuleConfiguration::ModuleConfiguration() {
+
+    cerr << "\033[1;31m ModuleConfiguration \033[0m: created ("<<this<<")" << endl;
 
     // Register for message types.
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_SET_IMGPROC_CONF);
@@ -16,7 +20,7 @@ ModuleConfiguration::ModuleConfiguration() {
 }
 
 ModuleConfiguration::~ModuleConfiguration() {
-    // TODO Auto-generated destructor stub
+    cerr << "\033[1;31m ModuleConfiguration \033[0m: deleted ("<<this<<")" << endl;
 }
 
 void ModuleConfiguration::setValue(uint8_t confGroup, string name, Opt* option) {

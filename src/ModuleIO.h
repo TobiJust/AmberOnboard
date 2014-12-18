@@ -23,7 +23,7 @@ public:
     virtual ~ModuleIO();
 
     void createStreamTerminal(istream& input, ostream& output);
-    void createTerminal(IOHandler* hndl);
+    void createTerminal(shared_ptr<IOHandler> hndl);
 
 protected:
     shared_ptr<Terminal> term;

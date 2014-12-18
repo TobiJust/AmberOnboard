@@ -9,14 +9,16 @@
 
 #include <unistd.h>
 
-CamCapture* ModuleImgProcessing::cam = 0;
+// CamCapture* ModuleImgProcessing::cam = 0;
 
 ModuleImgProcessing::ModuleImgProcessing() {
 
+    cerr << "\033[1;31m ModuleImgProcessing \033[0m: created ("<<this<<")" << endl;
+
     // TODO: Create secondary image capture.
     // Create objects for image capture.
-    shared_ptr<ImgCapture> cap_Primary(new CamCapture(0,1));
-    shared_ptr<ImgCapture> cap_Secondary(cap_Primary);
+    shared_ptr<ImgCapture> cap_Primary(new CamCapture(1,1));
+    shared_ptr<ImgCapture> cap_Secondary(new CamCapture(1,1));
 
     // Pre-initialize arguments.
     shared_ptr<cv::Mat> prep_mat(new cv::Mat(480, 640, CV_8UC1));
@@ -24,7 +26,7 @@ ModuleImgProcessing::ModuleImgProcessing() {
     shared_ptr<ValInt> prep_ValScale(new ValInt(4));
     shared_ptr<ValInt> prep_ValPosX(new ValInt(5));
     shared_ptr<ValInt> prep_ValPosY(new ValInt(5));
-    shared_ptr<ValInt> prep_ValQuali(new ValInt(50));
+    shared_ptr<ValInt> prep_ValQuali(new ValInt(75));
 
     // Create OpPrepare for image preparation and set arguments.
     // shared_ptr<OpPrepare> prep_Op(new OpPrepare);
@@ -41,6 +43,7 @@ ModuleImgProcessing::ModuleImgProcessing() {
     shared_ptr<ImgOpExecutor> prep_Exe(new ImgOpExecutor);
     prep_Exe->cap_append(cap_Primary);
     prep_Exe->cap_append(cap_Secondary);
+//    prep_Exe->cap_append(cap_Secondary);
     prep_Exe->op_append(prep_OpCasted);
 
     // Finally add executors to the lists of children.
@@ -48,11 +51,14 @@ ModuleImgProcessing::ModuleImgProcessing() {
     this->executors.insert(make_pair(PREPARE, prep_Exe));
 
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_ACQUIRED);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
 
 }
 
 ModuleImgProcessing::~ModuleImgProcessing() {
 
+
+    cerr << "\033[1;31m ModuleImgProcessing \033[0m: deleted ("<<this<<")" << endl;
     /*
     auto exeIt = this->executors.begin();
 
@@ -86,17 +92,23 @@ shared_ptr<Message_M2M> ModuleImgProcessing::processMsg(shared_ptr<Message_M2M> 
     case MSG_DATA_ACQUIRED:
     {
 
+        cerr << "\033[1;31m ModuleImgProcessing \033[0m: acquired ("<<this<<")" << endl;
+
         shared_ptr<M2M_DataSet> set(new M2M_DataSet);
 
         shared_ptr<ImgOpExecutor> prep_Exe = this->executors.find(PREPARE)->second;
 
         if (prep_Exe) {
 
+            cerr << "\033[1;31m ModuleImgProcessing \033[0m: found executor ("<<this<<")" << endl;
+
             shared_ptr<Value> imgResult;
 
             if (prep_Exe->getResult(RES_ENCODED_JPEG, imgResult))
                 return result;
             else {
+
+                cerr << "\033[1;31m ModuleImgProcessing \033[0m: and image exists ("<<this<<")" << endl;
 
                 shared_ptr<ValVectorUChar> jpegImg = dynamic_pointer_cast<ValVectorUChar>(imgResult);
                 set->setValue(ARG_IMG, jpegImg);
@@ -105,6 +117,8 @@ shared_ptr<Message_M2M> ModuleImgProcessing::processMsg(shared_ptr<Message_M2M> 
             set->setValue(ARG_IMG, shared_ptr<ValVectorUChar>(new ValVectorUChar));
 
         // TODO: delete this
+
+        cerr << "\033[1;31m ModuleImgProcessing \033[0m: Setting up rest of message ("<<this<<")" << endl;
 
         shared_ptr<vector<uint8_t>> tmp(new vector<uint8_t>);
         tmp->push_back('-');
@@ -121,6 +135,15 @@ shared_ptr<Message_M2M> ModuleImgProcessing::processMsg(shared_ptr<Message_M2M> 
 
         // MsgHub::getInstance()->appendMsg(set);
         result = set;
+
+        cerr << "\033[1;31m ModuleImgProcessing \033[0m: breaking ("<<this<<")" << endl;
+
+        break;
+    }
+    case MSG_TERM_BROADCAST:
+    {
+
+        this->terminate();
 
         break;
     }

@@ -36,6 +36,8 @@ public:
 
     // Message processing.
     void update();
+    void terminate();
+    bool isTerminating();
 
     void attachChildToMsg(shared_ptr<Child> observer, uint8_t type);
     void detachChildFromMsg(shared_ptr<Child> observer, uint8_t type);
@@ -45,14 +47,6 @@ public:
 
 protected:
 
-    // Data members.
-    condition_variable condition;
-    mutex waitMutex;
-    queue<shared_ptr<Msg>> sendBuf;
-    unordered_set<shared_ptr<Child>> children;
-    unordered_set<shared_ptr<thread>> childThreads;
-    unordered_map<uint8_t, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
-
     // Message processing.
     bool msgAvailable();
     virtual uint8_t countMsgFromChildren()=0;
@@ -61,6 +55,17 @@ protected:
     virtual shared_ptr<Message_M2M> processMsg(shared_ptr<Message_M2M>)=0;
 
     void addChild(shared_ptr<Child> child);
+
+private:
+
+    // Data members.
+    condition_variable condition;
+    mutex waitMutex;
+    queue<shared_ptr<Msg>> sendBuf;
+    unordered_set<shared_ptr<Child>> children;
+    unordered_set<shared_ptr<thread>> childThreads;
+    unordered_map<uint8_t, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
+    bool terminating;
 
 };
 

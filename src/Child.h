@@ -29,6 +29,10 @@ public:
     void detachObserver(Observer* observer);
     void notifyObservers();
 
+    void terminate();
+    bool isTerminating();
+    void term_wait();
+
     shared_ptr<Message_M2C> in_pop();
     void in_push(shared_ptr<Message_M2C> field);
     uint8_t in_count();
@@ -46,8 +50,10 @@ private:
     // Data members for Module-Child-communication.
     queue<shared_ptr<Message_M2C>> outgoing;
     queue<shared_ptr<Message_M2C>> incoming;
-    mutex inMutex, outMutex, oWait;
-    condition_variable condition;
+    mutex inMutex, outMutex, oWait, termWait;
+    condition_variable condition, termCondition;
+
+    bool terminating;
 };
 
 #endif /* CHILD_H_ */

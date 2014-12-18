@@ -9,30 +9,34 @@
 
 ModuleIO::ModuleIO() {
 
+    cerr << "\033[1;31m ModuleIO \033[0m: created ("<<this<<")" << endl;
+
     // Register for message types.
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_IN);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
 
     createStreamTerminal(cin, cout);
 }
 
 ModuleIO::~ModuleIO() {
-    // TODO Auto-generated destructor stub
+
+    cerr << "\033[1;31m ModuleIO \033[0m: deleted ("<<this<<")" << endl;
 }
 
 void ModuleIO::createStreamTerminal(istream& input, ostream& output) {
 
-    // Create StreamIO instance for handling stream input/output.
-    StreamIO s_io(input, output);
 
+
+    // Create StreamIO instance for handling stream input/output using
     // Polymorph (IOHandler) interface pointer to StreamIO.
-    IOHandler *s_ioH = &s_io;
+    shared_ptr<IOHandler> s_ioH(new StreamIO(input, output));
 
     // Create and set up Terminal instance.
     createTerminal(s_ioH);
 
 }
 
-void ModuleIO::createTerminal(IOHandler* hndl) {
+void ModuleIO::createTerminal(shared_ptr<IOHandler> hndl) {
 
     // Create new Terminal instance, using IOHandler reference.
     term.reset(new Terminal(hndl));
@@ -88,6 +92,13 @@ shared_ptr<Message_M2M> ModuleIO::processMsg(shared_ptr<Message_M2M> msg) {
         outData->setValue(ARG_TERM_OUT, input);
 
         term->out_push(dynamic_pointer_cast<Message_M2C>(outData));
+        break;
+    }
+    case MSG_TERM_BROADCAST:
+    {
+
+        this->terminate();
+
         break;
     }
     default:

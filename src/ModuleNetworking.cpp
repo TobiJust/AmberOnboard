@@ -11,12 +11,16 @@
 
 ModuleNetworking::ModuleNetworking() {
 
+    cerr << "\033[1;31m ModuleNetworking \033[0m: created ("<<this<<")" << endl;
+
     // Real time connection
     shared_ptr<NW_SocketInterface> interface(new NW_SocketInterface);
     interface->setValue(ARG_IP_FAMILY, shared_ptr<ValInt>(new ValInt(AF_UNSPEC)));
     interface->setValue(ARG_SOCK_TYPE, shared_ptr<ValInt>(new ValInt(SOCK_STREAM)));
     interface->setValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString("localhost")));
+    // interface->setValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString("10.220.3.158")));
     interface->setValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString("5555")));
+    // interface->setValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString("3000")));
     interface->initialize();
 
     shared_ptr<ProcDataFrame> frame(new ProcDataFrame);
@@ -34,11 +38,13 @@ ModuleNetworking::ModuleNetworking() {
     realtime->attachObserver(this);
 
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_COMPLETE);
+    MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
 
 }
 
 ModuleNetworking::~ModuleNetworking() {
-    // TODO Auto-generated destructor stub
+
+    cerr << "\033[1;31m ModuleNetworking \033[0m: deleted ("<<this<<")" << endl;
 }
 
 uint8_t ModuleNetworking::countMsgFromChildren() {
@@ -107,6 +113,8 @@ shared_ptr<Message_M2M> ModuleNetworking::processMsg(shared_ptr<Message_M2M> msg
     switch (msg->getType()) {
     case MSG_DATA_COMPLETE:
     {
+        cerr << "\033[1;31m ModuleNetworking \033[0m: MSG_DATA_COMPLETE ("<<this<<")" << endl;
+
         shared_ptr<Value> image, posE, posN, accX, accY, accZ;
         msg->getValue(ARG_IMG, image);
         msg->getValue(ARG_POS_E, posE);
@@ -132,6 +140,13 @@ shared_ptr<Message_M2M> ModuleNetworking::processMsg(shared_ptr<Message_M2M> msg
             this->detachChildFromMsg(comm, MSG_DATA_COMPLETE);
             childIt = this->getChildrenBegin(MSG_DATA_COMPLETE);
         }
+        break;
+    }
+    case MSG_TERM_BROADCAST:
+    {
+
+        this->terminate();
+
         break;
     }
     default:

@@ -19,7 +19,7 @@
 
 class ModuleImgProcessing : public Module {
 public:
-    static    CamCapture* cam;
+ //    static    CamCapture* cam;
 
     ModuleImgProcessing();
     virtual ~ModuleImgProcessing();

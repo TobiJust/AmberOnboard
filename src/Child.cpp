@@ -9,9 +9,14 @@
 
 #include <iostream>
 
-Child::Child() { }
+Child::Child() {
+    cerr << "\033[1;31m Child \033[0m: created ("<<this<<")" << endl;
+    this->terminating=false;
+}
 
-Child::~Child() { }
+Child::~Child() {
+    cerr << "\033[1;31m Child \033[0m: deleted ("<<this<<")" << endl;
+}
 
 void Child::attachObserver(Observer* observer) {
 
@@ -47,6 +52,27 @@ void Child::notifyObservers() {
     obsMutex.unlock();
 
 }
+
+void Child::terminate() {
+
+    cerr << "Child: terminate invoked!" << endl;
+
+    this->termCondition.notify_all();
+    this->terminating=true;
+
+}
+
+bool Child::isTerminating() {
+    return this->terminating;
+}
+
+void Child::term_wait() {
+
+    unique_lock<mutex> lock(this->termWait);
+    while (!this->terminating) this->termCondition.wait(lock);
+}
+
+
 
 shared_ptr<Message_M2C> Child::in_pop() {
 

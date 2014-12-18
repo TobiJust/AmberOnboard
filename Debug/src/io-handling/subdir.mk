@@ -4,18 +4,21 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/io-handling/FileIO.cpp \
 ../src/io-handling/IOHandler.cpp \
 ../src/io-handling/StrProcessor.cpp \
 ../src/io-handling/StreamIO.cpp \
 ../src/io-handling/Terminal.cpp 
 
 OBJS += \
+./src/io-handling/FileIO.o \
 ./src/io-handling/IOHandler.o \
 ./src/io-handling/StrProcessor.o \
 ./src/io-handling/StreamIO.o \
 ./src/io-handling/Terminal.o 
 
 CPP_DEPS += \
+./src/io-handling/FileIO.d \
 ./src/io-handling/IOHandler.d \
 ./src/io-handling/StrProcessor.d \
 ./src/io-handling/StreamIO.d \

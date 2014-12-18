@@ -7,6 +7,10 @@
 
 #include "StreamIO.h"
 
+#include <iostream>
+#include <termios.h>
+#include <unistd.h>
+
 using namespace std;
 
 StreamIO::StreamIO(istream& input, ostream& output) {
@@ -30,8 +34,29 @@ ioStat StreamIO::receive_s(string* target, int bytes) {
     // Target character buffer.
     char* buffer = new char[bytes + 1];
 
+
+
+    static struct termios oldt, newt;
+      tcgetattr( STDIN_FILENO, &oldt);           // save old settings
+      newt = oldt;
+      newt.c_lflag &= ~(ICANON);                 // disable buffering
+      tcsetattr( STDIN_FILENO, TCSANOW, &newt);  // apply new settings
+
+      int c = getchar();  // read character (non-blocking)
+
+      tcsetattr( STDIN_FILENO, TCSANOW, &oldt);  // restore old settings
+
+
+
+
+
+
+    cerr << "StreamIO: reading some bytes" << endl;;
+
     // Read from member stream.
     inStream->read(buffer, bytes);
+
+    cerr << "StreamIO: read some bytes" << endl;;
 
     // None of the error/failure flags was set.
     if (inStream->good()) {
@@ -77,7 +102,15 @@ bool StreamIO::isActive() {
 
 void StreamIO::setActive(bool active) {
 
+    cerr << "StreamIO: setting to " << (active?"active":"inactive") << endl;
+
     this->active = active;
+    if (this->active)
+        this->inStream->clear(ios::goodbit);
+    else {
+        this->inStream->setstate(ios::eofbit);
+        this->inStream->putback('\n');
+    }
 }
 
 ioStat StreamIO::getStat(basic_ios<char>* stream) {
