@@ -9,9 +9,10 @@
 #define MODULEIO_H_
 
 #include "Module.h"
-#include "io-handling/IOHandler.h"
-#include "io-handling/StreamIO.h"
-#include "io-handling/Terminal.h"
+#include "io-handling/Config.h"
+// #include "io-handling/IOHandler.h"
+// #include "io-handling/StreamIO.h"
+// #include "io-handling/Terminal.h"
 
 #include <iostream>
 
@@ -22,11 +23,17 @@ public:
     ModuleIO();
     virtual ~ModuleIO();
 
+    virtual bool setup();
+
     void createStreamTerminal(istream& input, ostream& output);
-    void createTerminal(shared_ptr<IOHandler> hndl);
+    // void createTerminal(shared_ptr<IOHandler> hndl);
 
 protected:
-    shared_ptr<Terminal> term;
+
+    // Config conf;
+    // shared_ptr<Terminal> term;
+
+    void createTerminal(string path, uint32_t baud);
 
     virtual uint8_t countMsgFromChildren();
     virtual uint8_t pollMsgFromChildren();

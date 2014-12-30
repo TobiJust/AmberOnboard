@@ -9,18 +9,26 @@
 
 #include <iostream>
 #include <sys/time.h>
+#include <arpa/inet.h>
 
-NW_SocketInterface::NW_SocketInterface() {
+NW_SocketInterface::NW_SocketInterface(uint8_t ipFamily, uint8_t socketType, string address, string port, string iface) {
 
     this->socketDesc=-1;
-    this->active=false;
     this->host_info_list=0;
 
+    this->ipFamily      = ipFamily;
+    this->socketType    = socketType;
+    this->address       = address;
+    this->port          = port;
+    this->iface         = iface;
+
+    /*
     // Create argument list.
     createValue(ARG_IP_FAMILY, shared_ptr<ValInt>(new ValInt));
     createValue(ARG_SOCK_TYPE, shared_ptr<ValInt>(new ValInt));
     createValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString));
     createValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString));
+     */
 
 }
 
@@ -31,9 +39,9 @@ NW_SocketInterface::~NW_SocketInterface() {
 
 uint8_t NW_SocketInterface::initialize() {
 
-    if (!this->active && this->initialized()) {
+    // if (!this->active && this->initialized()) {
 
-
+    /*
         myfile.open ("dataset.txt");
 
         cerr << "NW_SocketInterface: (re)initializing... (descriptor is " << socketDesc << ")"<< endl;
@@ -63,39 +71,60 @@ uint8_t NW_SocketInterface::initialize() {
         uint8_t sockType = (dynamic_pointer_cast<ValInt>(sockType_Value))->getValue();
         string addr = (dynamic_pointer_cast<ValString>(addr_Value))->getValue();
         string port = (dynamic_pointer_cast<ValString>(port_Value))->getValue();
+     */
 
-        // Initialize and set host info.
-        struct addrinfo host_info;
-        memset(&host_info, 0, sizeof host_info);
 
-        host_info.ai_family = ipFam;     // IP version. AF_UNSPEC recommended.
-        host_info.ai_socktype = sockType; // SOCK_STREAM for TCP, SOCK_DGRAM for UDP.
+    // Initialize socket setup variables.
+    struct addrinfo host_info;
+    struct ifreq ifr;
+    memset(&host_info, 0, sizeof host_info);
+    bzero(&ifr, sizeof(ifr));
 
-        // Generate target address information.
-        status = getaddrinfo(addr.c_str(), port.c_str(), &host_info, &(this->host_info_list));
-        if (status != 0)
-            return NW_ERR_ADDR_INFO;
+    host_info.ai_family = this->ipFamily;     // IP version. AF_UNSPEC recommended.
+    host_info.ai_socktype = this->socketType; // SOCK_STREAM for TCP, SOCK_DGRAM for UDP.
 
-        // Now that setup is done, create socket.
-        this->socketDesc = socket(host_info_list->ai_family, host_info_list->ai_socktype,
-                host_info_list->ai_protocol);
-        if (this->socketDesc == -1)
-            return NW_ERR_SOCKET;
+    // Generate target address information.
+    uint8_t status = getaddrinfo(this->address.c_str(), this->port.c_str(), &host_info, &(this->host_info_list));
+    if (status != 0)
+        return NW_ERR_ADDR_INFO;
 
-        int flag = 1;
-        int result = setsockopt(this->socketDesc, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
+    // Now that setup is done, create socket.
+    this->socketDesc = socket(host_info_list->ai_family, host_info_list->ai_socktype,
+            host_info_list->ai_protocol);
+    if (this->socketDesc == -1)
+        return NW_ERR_SOCKET;
 
-        // Last step of initialization: Connect to server.
-        status = connect(this->socketDesc, host_info_list->ai_addr, host_info_list->ai_addrlen);
-        if (this->socketDesc == -1)
-            return NW_ERR_CONNECT;
+    // Disable buffering and reuse socket port.
+    int flag = 1;
+    if (setsockopt(this->socketDesc, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)))
+        return NW_ERR_ARGUMENT;
+    if (setsockopt(this->socketDesc, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1)
+        return NW_ERR_ARGUMENT;
 
-        cerr << "NW_SocketInterface: initialized (descriptor is " << socketDesc << ")" << endl;
+    // Get interface address for binding.
+    strncpy((char *)ifr.ifr_name, this->iface.c_str(), this->iface.length());
+    if(ioctl(this->socketDesc, SIOCGIFADDR, &ifr))
+        return NW_ERR_IFACE;
 
-        return NW_OK;
+    // cerr << (struct sockaddr *)&ifr.ifr_addr << "=============================" << inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr)  << endl;
 
+    // Bind socket to interface.
+    if((bind(this->socketDesc, (struct sockaddr *)&ifr.ifr_addr, sizeof(sockaddr)))== -1)
+        return NW_ERR_BIND;
+
+    // Last step of initialization: Connect to server.
+    status = connect(this->socketDesc, host_info_list->ai_addr, host_info_list->ai_addrlen);
+    if (this->socketDesc == -1)
+        return NW_ERR_CONNECT;
+
+    // send(this->socketDesc, "Hello World", 11, 0);
+
+    return NW_OK;
+
+    /*
     } else if (!this->initialized())
         return NW_ERR_ARGUMENT;
+     */
 
     return NW_ERR_ALREADY_ACTIVE;
 
@@ -198,7 +227,7 @@ uint8_t NW_SocketInterface::backward(shared_ptr<vector<uint8_t>> packet,
     /*
     myfile << "[RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR]";
     copy(begin, begin+bytesReceived, ostream_iterator<uint8_t>(myfile , ""));
-*/
+     */
 
     if (bytesReceived < 1)
         return NW_ERR_SEND;

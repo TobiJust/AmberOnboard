@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Child.cpp \
+../src/Initializer.cpp \
 ../src/Module.cpp \
 ../src/ModuleConfiguration.cpp \
 ../src/ModuleIO.cpp \
@@ -18,6 +19,7 @@ CPP_SRCS += \
 
 OBJS += \
 ./src/Child.o \
+./src/Initializer.o \
 ./src/Module.o \
 ./src/ModuleConfiguration.o \
 ./src/ModuleIO.o \
@@ -31,6 +33,7 @@ OBJS += \
 
 CPP_DEPS += \
 ./src/Child.d \
+./src/Initializer.d \
 ./src/Module.d \
 ./src/ModuleConfiguration.d \
 ./src/ModuleIO.d \

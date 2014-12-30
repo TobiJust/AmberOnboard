@@ -11,14 +11,14 @@
 
 NetworkCommunicator::NetworkCommunicator() {
 
-    cerr << "\033[1;31m NetworkCommunicator \033[0m: created ("<<this<<")" << endl;
+    cerr << "\033[1;31m NetworkCommunicator \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
     this->first = NULL;
 
 }
 
 NetworkCommunicator::~NetworkCommunicator() {
 
-    cerr << "\033[1;31m NetworkCommunicator \033[0m: deleted ("<<this<<")" << endl;
+    cerr << "\033[1;31m NetworkCommunicator \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
 }
 
 bool NetworkCommunicator::appenProc(shared_ptr<FrameProcessor> proc) {
@@ -68,7 +68,7 @@ int NetworkCommunicator::scan() {
         }
     }
 
-    cerr << "NetworkCommunicator: print terminated" << endl;
+    cerr << "NetworkCommunicator: scan terminated" << endl;
 
     return 0;
 

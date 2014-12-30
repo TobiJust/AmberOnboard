@@ -28,6 +28,7 @@ public:
     // Instantiation.
     Module();
     virtual ~Module();
+    // virtual bool setup()=0;
     thread* createThread();
     int run();
 
@@ -39,6 +40,7 @@ public:
     void terminate();
     bool isTerminating();
 
+    void addChild(shared_ptr<Child> child);
     void attachChildToMsg(shared_ptr<Child> observer, uint8_t type);
     void detachChildFromMsg(shared_ptr<Child> observer, uint8_t type);
 
@@ -54,13 +56,11 @@ protected:
     uint8_t pollMsgFromHub();
     virtual shared_ptr<Message_M2M> processMsg(shared_ptr<Message_M2M>)=0;
 
-    void addChild(shared_ptr<Child> child);
-
 private:
 
     // Data members.
-    condition_variable condition;
-    mutex waitMutex;
+    shared_ptr<condition_variable> condition;
+    shared_ptr<mutex> waitMutex;
     queue<shared_ptr<Msg>> sendBuf;
     unordered_set<shared_ptr<Child>> children;
     unordered_set<shared_ptr<thread>> childThreads;

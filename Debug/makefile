@@ -10,6 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include src/nw-handling/subdir.mk
 -include src/msg-handling/subdir.mk
+-include src/io-handling/instances/subdir.mk
 -include src/io-handling/subdir.mk
 -include src/img-handling/subdir.mk
 -include src/dev-handling/subdir.mk

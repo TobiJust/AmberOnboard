@@ -18,10 +18,20 @@
 
 #include <vector>
 
+typedef enum {
+    NW_MOD_OK,
+    NW_MOD_ERR_UNKNOWN,
+    NW_MOD_ERR_INVALID_REFERENCE
+} nwProcStatus;
+
 class ModuleNetworking : public Module {
 public:
+
     ModuleNetworking();
     virtual ~ModuleNetworking();
+
+    uint8_t com_append(shared_ptr<NetworkCommunicator> executor);
+    void com_clear();
 
 protected:
     vector<shared_ptr<NetworkCommunicator>> communicators;

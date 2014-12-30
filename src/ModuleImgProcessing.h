@@ -17,12 +17,23 @@
 #include <string>
 #include <unordered_map>
 
+typedef enum {
+    IMG_PROC_OK,
+    IMG_PROC_ERR_UNKNOWN,
+    IMG_PROC_ERR_INVALID_REFERENCE
+} imgProcStatus;
+
 class ModuleImgProcessing : public Module {
 public:
  //    static    CamCapture* cam;
 
     ModuleImgProcessing();
     virtual ~ModuleImgProcessing();
+
+    uint8_t exec_append(string key, shared_ptr<ImgOpExecutor> executor);
+    uint8_t exec_delete(string key);
+    void exec_clear();
+
 protected:
     unordered_map<string, shared_ptr<ImgOpExecutor>> executors;
 

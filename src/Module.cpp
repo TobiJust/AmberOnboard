@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <chrono>
 
-Module::Module() {
+Module::Module() : waitMutex(new mutex), condition(new condition_variable) {
     cerr << "\033[1;31m Module \033[0m: created ("<<this<<")" << endl;
     this->terminating=false;
 }
@@ -99,7 +99,7 @@ void Module::update() {
     cerr << "\033[1;31m Module \033[0m: updating ("<<this<<")" << endl;
 
     // Inform module about pending messages.
-    this->condition.notify_all();
+    this->condition->notify_all();
 
 }
 
@@ -108,6 +108,10 @@ void Module::terminate() {
     cerr << "Module: terminate invoked!" << endl;
 
     this->terminating=true;
+
+    for ( shared_ptr<Child> child : this->children) {
+        child->terminate();
+    }
 }
 
 bool Module::isTerminating() {
@@ -115,20 +119,31 @@ bool Module::isTerminating() {
 }
 
 int Module::run(){
+    try {
 
-    auto child = this->children.begin();
+        cerr << "Module: run called" << endl;
 
-    while (child != this->children.end()) {
+        auto child = this->children.begin();
 
-        // Create child thread on 'run' method.
-        shared_ptr<thread> childThread(new thread(&Child::run, *child++));
+        while (child != this->children.end()) {
 
-        // Add thread to list of joinable child threads.
-        childThreads.insert(childThread);
+            // Create child thread on 'run' method.
+            shared_ptr<thread> childThread(new thread(&Child::run, *child++));
+            cerr << "Module: thread created" << endl;
+            // Add thread to list of joinable child threads.
+            childThreads.insert(childThread);
 
-        childThread->detach();
+            childThread->detach();
+            cerr << "Module: thread detached" << endl;
 
+        }
+
+    } catch(const std::system_error& e) {
+        std::cout << "\033[1;31m Module: Caught on thread creation \033[0m (\x1B[33m"<<this<<"\033[0m) " << e.code()
+                                                                                          << " meaning " << e.what() << '\n';
     }
+
+    cerr << "Module: running into while loop" << endl;
 
     // usleep(500000);
 
@@ -138,17 +153,27 @@ int Module::run(){
     // Infinite run loop.
     while(!terminating){
 
-        cerr << "\033[1;31m Module \033[0m: not terminatind.................. ("<<this<<")" << endl;
-
         msgCount=0;
 
-        // Poll all currently pending messages from children.
-        while (countMsgFromChildren())
-            msgCount += pollMsgFromChildren();
+        try {
+            // Poll all currently pending messages from children.
+            while (countMsgFromChildren())
+                msgCount += pollMsgFromChildren();
 
-        // Poll all currently pending messages from hub.
-        while (MsgHub::getInstance()->getMsgCount(this))
-            msgCount += pollMsgFromHub();
+        } catch(const std::system_error& e) {
+            std::cout << "\033[1;31m Module: Caught on polling child msg \033[0m (\x1B[33m"<<this<<"\033[0m) " << e.code()
+                                                                                      << " meaning " << e.what() << '\n';
+        }
+
+        try {
+            // Poll all currently pending messages from hub.
+            while (MsgHub::getInstance()->getMsgCount(this))
+                msgCount += pollMsgFromHub();
+
+        } catch(const std::system_error& e) {
+            std::cout << "\033[1;31m Module: Caught on polling hub msg \033[0m (\x1B[33m"<<this<<"\033[0m) " << e.code()
+                                                                                          << " meaning " << e.what() << '\n';
+        }
 
         cerr << "\033[1;31m Module \033[0m: msg count " << (int32_t)msgCount << " ("<<this<<")" << endl;
 
@@ -158,10 +183,20 @@ int Module::run(){
             cerr << "\033[1;31m Module \033[0m: sleeping now ("<<this<<")" << endl;
 
             // Wait until new data are available.
-            unique_lock<mutex> lock(this->waitMutex);
-            while (!this->msgAvailable()) {
-                // this->condition.wait(lock);
-                this->condition.wait_for(lock, chrono::milliseconds(100));
+
+            cerr << (this->waitMutex? "MUTEX exists" : "MUTEX does not exist!") << endl;
+
+            try {
+                unique_lock<mutex> lock(*(this->waitMutex));
+
+                while (!this->msgAvailable()) {
+                    // this->condition.wait(lock);
+                    this->condition->wait_for(lock, chrono::milliseconds(100));
+                }
+
+            } catch(const std::system_error& e) {
+                std::cout << "\033[1;31m Module: Caught on lock \033[0m (\x1B[33m"<<this<<"\033[0m) " << e.code()
+                                                                                          << " meaning " << e.what() << '\n';
             }
 
             cerr << "\033[1;31m Module \033[0m: Oh, a new message ("<<this<<")" << endl;
@@ -174,10 +209,17 @@ int Module::run(){
     for (auto termIt : this->children)
         termIt->terminate();
 
-    // Join corresponding threads.
-    for (auto joinIt : this->childThreads)
-        if(joinIt->joinable())
-            joinIt->join();
+    try {
+
+        // Join corresponding threads.
+        for (auto joinIt : this->childThreads)
+            if(joinIt->joinable())
+                joinIt->join();
+
+    } catch(const std::system_error& e) {
+        std::cout << "\033[1;31m Module: Caught on joining \033[0m (\x1B[33m"<<this<<"\033[0m) " << e.code()
+                                                                                          << " meaning " << e.what() << '\n';
+    }
 
     return 0;
 

@@ -25,6 +25,7 @@
 #include "network-handling/ProcPayload.h"
  */
 
+#include "Initializer.h"
 #include "ModuleIO.h"
 #include "ModuleImgProcessing.h"
 #include "ModuleNetworking.h"
@@ -53,8 +54,8 @@ bool terminating = false;
 void sig_handler(int signo)
 {
     if(!terminating) {
-        printf("received SIGINT\n");
-        printf("shutting down now\n");
+        cerr << "Received signal " << signo << "( " << strsignal(signo) <<" )" << endl;
+        cerr << "Calling terminate!" << endl;
 
         shared_ptr<M2M_TermBroad> broadcast(new M2M_TermBroad);
         MsgHub::getInstance()->appendMsg(broadcast);
@@ -186,14 +187,24 @@ int main() {
 
             cerr << "------------------- try entered --------------------" <<endl;
 
+            /*
             shared_ptr<ModuleImgProcessing> img(new ModuleImgProcessing);
             // sleep(1);
             shared_ptr<ModuleIO> io(new ModuleIO);
             // sleep(1);
             shared_ptr<ModuleNetworking> net(new ModuleNetworking);
             // sleep(1);
+*/
 
-
+            Initializer init;
+            uint8_t status;
+            if (!(status=init.setup())) {
+                cerr << "------------------- setup done --------------------" <<endl;
+                // sleep(1);
+                init.run();
+            } else
+                cerr << "setup failed with error " << (uint16_t)status << endl;
+/*
             shared_ptr<thread> imgThread(new thread(&ModuleImgProcessing::run, img));
             usleep(50000);
             shared_ptr<thread> ioThread(new thread(&ModuleIO::run, io));
@@ -207,6 +218,7 @@ int main() {
                 netThread->join();
 
             sleep(5);
+ */
 
             // delete img;
             // delete net;

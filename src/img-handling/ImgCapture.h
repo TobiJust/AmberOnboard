@@ -39,8 +39,9 @@ public:
     CamCapture(uint8_t camIndex, uint8_t captureID);
     virtual ~CamCapture();
     virtual shared_ptr<cv::Mat> getFrame();
-    bool openCapture(uint8_t camIndex);
+    bool openCapture();
 protected:
+    uint8_t index;
     shared_ptr<cv::VideoCapture> capture;
 };
 

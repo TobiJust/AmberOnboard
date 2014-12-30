@@ -57,8 +57,8 @@ void Child::terminate() {
 
     cerr << "Child: terminate invoked!" << endl;
 
-    this->termCondition.notify_all();
     this->terminating=true;
+    this->termCondition.notify_all();
 
 }
 

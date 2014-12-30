@@ -32,6 +32,10 @@
 #include <string>
 #include <vector>
 
+#include <linux/if_packet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <net/ethernet.h>
 
 
 
@@ -39,7 +43,8 @@
 
 class NW_SocketInterface : public FrameProcessor {
 public:
-    NW_SocketInterface();
+
+    NW_SocketInterface(uint8_t ipFamily, uint8_t socketType, string address, string port, string iface);
     virtual ~NW_SocketInterface();
     uint8_t initialize();
 
@@ -55,11 +60,14 @@ private:
     int count =1;
 
 
+    // Socket properties.
+    uint8_t ipFamily, socketType;
+    string address, port, iface;
 
     timeval step1, step2;
     int32_t socketDesc;
     struct addrinfo *host_info_list;
-    bool active;
+    // bool active;
 };
 
 #endif /* NW_SOCKETINTERFACE_H_ */

@@ -22,7 +22,7 @@ public:
     NetworkCommunicator();
     virtual ~NetworkCommunicator();
     bool appenProc(shared_ptr<FrameProcessor> proc);
-    int run();
+    virtual int run();
     int print();
     int scan();
 private:

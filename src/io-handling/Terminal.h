@@ -1,43 +1,40 @@
 /*
  * Terminal.h
  *
- *  Created on: 24.03.2014
+ *  Created on: 29.12.2014
  *      Author: Daniel Wagenknecht
  */
 
 #ifndef TERMINAL_H_
 #define TERMINAL_H_
 
-#include "IOHandler.h"
-#include "StrProcessor.h"
+#include "instances/IOserial.h"
 #include "../Child.h"
 
-#include <condition_variable>
-#include <mutex>
-#include <queue>
-#include <sstream>
 #include <thread>
-#include <ctime>
 
-using namespace std;
+typedef enum {
+    TERM_OK,
+    TERM_ERR_OPEN,
+}termState;
 
 class Terminal : public Child {
 public:
-	Terminal(shared_ptr<IOHandler> handler);
-	virtual ~Terminal();
-	int run();
-	int print();
-	int scan();
-    // void addOutput(string str);
-    int countInput();
-    string getInput();
-private:
-	queue<string> input, output;
-	shared_ptr<IOHandler> hndl;
-	mutex waitMutex, iMutex, oMutex;
-	condition_variable condition;
 
-    void addInput(string str);
+    Terminal(string path, uint32_t baud);
+    virtual ~Terminal();
+    uint8_t initialize();
+
+    virtual int run();
+    int print();
+    int scan();
+
+private:
+
+    IOserial port;
+
+    string getTime();
+
 };
 
 #endif /* TERMINAL_H_ */

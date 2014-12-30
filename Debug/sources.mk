@@ -26,6 +26,7 @@ SUBDIRS := \
 src/nw-handling \
 src/msg-handling \
 src \
+src/io-handling/instances \
 src/io-handling \
 src/img-handling \
 src/dev-handling \

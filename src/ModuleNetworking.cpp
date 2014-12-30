@@ -11,15 +11,16 @@
 
 ModuleNetworking::ModuleNetworking() {
 
-    cerr << "\033[1;31m ModuleNetworking \033[0m: created ("<<this<<")" << endl;
+    cerr << "\033[1;31m ModuleNetworking \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
 
+/*
     // Real time connection
     shared_ptr<NW_SocketInterface> interface(new NW_SocketInterface);
     interface->setValue(ARG_IP_FAMILY, shared_ptr<ValInt>(new ValInt(AF_UNSPEC)));
     interface->setValue(ARG_SOCK_TYPE, shared_ptr<ValInt>(new ValInt(SOCK_STREAM)));
-    interface->setValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString("localhost")));
+    interface->setValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString("192.168.0.108")));
     // interface->setValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString("10.220.3.158")));
-    interface->setValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString("5555")));
+    interface->setValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString("3000")));
     // interface->setValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString("3000")));
     interface->initialize();
 
@@ -36,6 +37,7 @@ ModuleNetworking::ModuleNetworking() {
     // Add child to list of joinable threads.
     addChild(realtime);
     realtime->attachObserver(this);
+ */
 
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_COMPLETE);
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
@@ -44,7 +46,17 @@ ModuleNetworking::ModuleNetworking() {
 
 ModuleNetworking::~ModuleNetworking() {
 
-    cerr << "\033[1;31m ModuleNetworking \033[0m: deleted ("<<this<<")" << endl;
+    cerr << "\033[1;31m ModuleNetworking \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
+}
+
+uint8_t ModuleNetworking::com_append(shared_ptr<NetworkCommunicator> communicator) {
+
+    if (!communicator) return NW_MOD_ERR_INVALID_REFERENCE;
+    this->communicators.push_back(communicator);
+}
+
+void ModuleNetworking::com_clear() {
+    this->communicators.clear();
 }
 
 uint8_t ModuleNetworking::countMsgFromChildren() {
@@ -77,9 +89,12 @@ uint8_t ModuleNetworking::pollMsgFromChildren() {
 
             shared_ptr<Message_M2C> next = (*commIt)->in_pop();
 
+            cerr << "\033[1;31m ModuleNetworking \033[0m: Message incomming ("<<this<<")" << endl;
+
             switch (next->getType()) {
             case MSG_DATA_ACQUIRED:
             {
+                cerr << "\033[1;31m ModuleNetworking \033[0m: Data acquired ("<<this<<")" << endl;
 
                 string next = "Acquired\n";
                 shared_ptr<ValString> inputString(new ValString(next));
@@ -134,6 +149,8 @@ shared_ptr<Message_M2M> ModuleNetworking::processMsg(shared_ptr<Message_M2M> msg
 
         auto childIt = this->getChildrenBegin(MSG_DATA_COMPLETE);
         while (childIt != this->getChildrenEnd(MSG_DATA_COMPLETE)) {
+
+            cerr << "\033[1;31m ModuleNetworking \033[0m: Child was listening----------- ("<<this<<")" << endl;
 
             shared_ptr<NetworkCommunicator> comm = dynamic_pointer_cast<NetworkCommunicator>(*childIt);
             comm->out_push(dynamic_pointer_cast<Message_M2C>(outData));

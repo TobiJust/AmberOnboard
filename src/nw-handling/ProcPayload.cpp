@@ -11,10 +11,15 @@
 #include <iostream>
 
 
-ProcPayload::ProcPayload() {
+ProcPayload::ProcPayload(uint8_t devID) {
+
+    this->devID=devID;
 
     // Create argument list.
-    createValue(ARG_DEV_ID, shared_ptr<ValInt>(new ValInt));
+
+    /*
+     createValue(ARG_DEV_ID, shared_ptr<ValInt>(new ValInt));
+     */
 
 }
 
@@ -22,11 +27,16 @@ ProcPayload::~ProcPayload() { }
 
 uint8_t ProcPayload::push(shared_ptr<Message_M2C> output) {
 
+    uint8_t status=NW_OK;
+    /*
     // Get arguments.
     shared_ptr<Value> devID_Value;
     uint8_t status = getValue(ARG_DEV_ID, devID_Value);
     if( status != OK )
         return NW_ERR_ARGUMENT; // An argument error occurred.
+     */
+
+    cerr << "ProcPayload: pushing message" << endl;
 
     queue< shared_ptr< deque< shared_ptr<vector<uint8_t>>>>> outBuffer;
 
@@ -35,13 +45,16 @@ uint8_t ProcPayload::push(shared_ptr<Message_M2C> output) {
 
     case MSG_DATA_COMPLETE:
     {
+        /*
+         */
         // Build packets to transmit.
         status = packAcquiredData(outBuffer,
-                dynamic_pointer_cast<M2C_DataSet>(output),
-                dynamic_pointer_cast<ValInt>(devID_Value)->getValue());
+                dynamic_pointer_cast<M2C_DataSet>(output));
 
-        if( status != OK )
-            return status; // An error occurred.
+        // An error occurred.
+        if( status != OK ) return status;
+
+        cerr << "ProcPayload: complete dataset received!" << endl;
 
         gettimeofday(&step1, 0);
         // Transmit all pending packets.
@@ -59,13 +72,14 @@ uint8_t ProcPayload::push(shared_ptr<Message_M2C> output) {
         break;
     }
 
+    cerr << "ProcPayload: done!" << endl;
+
     return NW_OK;
 }
 
 uint8_t ProcPayload::packAcquiredData(
         queue< shared_ptr< deque< shared_ptr<vector<uint8_t>>>>> &packets,
-        shared_ptr<M2C_DataSet> data,
-        uint8_t devID) {
+        shared_ptr<M2C_DataSet> data) {
 
     shared_ptr<Value> img_Value;
     uint8_t status = data->getValue(ARG_IMG, img_Value);
@@ -136,7 +150,7 @@ uint8_t ProcPayload::packAcquiredData(
 
             // Create data frame.
             content->push_back(MSG_ID_IMAGE);
-            content->push_back(devID);
+            content->push_back(this->devID);
             content->push_back(DATA_TYPE_IMG);
             content->push_back(1 + img->size() / (PAYLOAD_SIZE-6));
             content->push_back(frameNumber++);
@@ -155,7 +169,7 @@ uint8_t ProcPayload::packAcquiredData(
         shared_ptr<vector<uint8_t>> telemetry(new vector<uint8_t>);
 
         telemetry->push_back(MSG_ID_TELEMETRY);
-        telemetry->push_back(devID);
+        telemetry->push_back(this->devID);
         telemetry->push_back(DATA_TYPE_TELEMETRY);
         insertTelemetry(telemetry, posN, FIELD_TYPE_POS_N);
         insertTelemetry(telemetry, posE, FIELD_TYPE_POS_E);

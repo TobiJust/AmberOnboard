@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <system_error>
 
 ImgCapture::ImgCapture(uint8_t captureID) {
     this->capIdentifier=captureID;
@@ -31,18 +32,24 @@ void ImgCapture::setCapId(uint8_t captureID) {
 
 CamCapture::CamCapture(uint8_t camIndex, uint8_t captureID) : ImgCapture(captureID){
 
+    cerr << "CamCapture: Creating capture at " << (uint16_t) camIndex << endl;
+
     this->capture.reset();
-    openCapture(camIndex);
+    this->index=camIndex;
+    // openCapture(camIndex);
 }
 
 CamCapture::~CamCapture() {
-    this->capture->release();
+
+    if (this->capture)
+        if(this->capture->isOpened())
+            this->capture->release();
 }
 
 shared_ptr<cv::Mat> CamCapture::getFrame() {
 
     /*
-*/
+     */
 
     // usleep(100000);
     // cerr << "CamCapture: Camera is " << (this->capture->isOpened()? "opened" : "closed" ) << endl;
@@ -50,18 +57,28 @@ shared_ptr<cv::Mat> CamCapture::getFrame() {
     // Create result Mat.
     shared_ptr<cv::Mat> result(new cv::Mat);
 
-    // cerr << "CamCapture: Mat created" << endl;
+    cerr << "\x1B[32mCamCapture: Getting frame from " << (uint16_t) index << "\x1B[0m" << endl;
+    cerr << (this->capture? "CamCapture: cap exists" : "CamCapture: cap does not exist!") << endl;
+    cerr << (this->capture? "CamCapture: cap exists" : "CamCapture: cap does not exist!") << endl;
 
     // Write next frame to it.
     *(this->capture) >> *result;
 
-    // cerr << "CamCapture: image size is " << dec << result->cols <<"x"<< result->rows << dec << endl;
+    if (result->cols < 1 || result->rows < 1) {
+        result=shared_ptr<cv::Mat>(new cv::Mat(480, 640, CV_8UC1));
+    }
 
-    return result;
-/*
+
+
+
+
+        // cerr << "CamCapture: image size is " << dec << result->cols <<"x"<< result->rows << dec << endl;
+
+        return result;
+    /*
     shared_ptr<cv::Mat> mat(new cv::Mat(1080, 1920, CV_8UC1));
     return mat;
- */
+     */
     shared_ptr<cv::Mat> mat(new cv::Mat);
     // shared_ptr<cv::Mat> mat(new cv::Mat(900, 1600, CV_8UC1));
 
@@ -73,19 +90,15 @@ shared_ptr<cv::Mat> CamCapture::getFrame() {
 
 }
 
-bool CamCapture::openCapture(uint8_t camIndex) {
+bool CamCapture::openCapture() {
 
     if (this->capture)
         if(this->capture->isOpened())
             this->capture->release();
 
     // Initialize image capture object.
-    this->capture.reset(new cv::VideoCapture(camIndex));
-
-    if(this->capture->isOpened())
-        this->active=true;
-    else
-        this->active=false;
+    this->capture.reset(new cv::VideoCapture(this->index));
+    this->active = this->capture->isOpened();
 
     return active;
 

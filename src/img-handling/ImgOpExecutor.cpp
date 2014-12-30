@@ -12,11 +12,14 @@
 ResultContainer::ResultContainer() {}
 ResultContainer::~ResultContainer() {}
 
-ImgOpExecutor::ImgOpExecutor() { }
+ImgOpExecutor::ImgOpExecutor() {
+
+    cerr << "\033[1;31m ImgOpExecutor \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
+}
 
 ImgOpExecutor::ImgOpExecutor(shared_ptr<ImgCapture> &capture) {
 
-    cerr << "\033[1;31m ImgOpExecutor \033[0m: created ("<<this<<")" << endl;
+    cerr << "\033[1;31m ImgOpExecutor \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
 
     if (capture)
         this->imageCaptures.push_back(capture);
@@ -24,10 +27,10 @@ ImgOpExecutor::ImgOpExecutor(shared_ptr<ImgCapture> &capture) {
 
 ImgOpExecutor::~ImgOpExecutor() {
 
-    cerr << "\033[1;31m ImgOpExecutor \033[0m: deleted ("<<this<<")" << endl;
+    cerr << "\033[1;31m ImgOpExecutor \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
 }
 
-uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> &op) {
+uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> op) {
 
     // Last of the 256 possible indices is reserved.
     if(this->imageOperators.size() < 0xFF) {
@@ -43,7 +46,7 @@ uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> &op) {
     return EXEC_OUT_OF_BOUNDS;
 }
 
-uint8_t ImgOpExecutor::op_delete(shared_ptr<ImgOperator> &op) {
+uint8_t ImgOpExecutor::op_delete(shared_ptr<ImgOperator> op) {
 
     // Pointer must not point to NULL.
     if (op) {
@@ -118,7 +121,7 @@ uint8_t ImgOpExecutor::op_firstIndexOf(uint8_t opType) {
     return 0xFF;
 }
 
-uint8_t ImgOpExecutor::cap_append(shared_ptr<ImgCapture> &capture) {
+uint8_t ImgOpExecutor::cap_append(shared_ptr<ImgCapture> capture) {
 
     // Last of the 256 possible indices is reserved.
     if(this->imageCaptures.size() < 0xFF) {
@@ -134,7 +137,7 @@ uint8_t ImgOpExecutor::cap_append(shared_ptr<ImgCapture> &capture) {
     return EXEC_OUT_OF_BOUNDS;
 }
 
-uint8_t ImgOpExecutor::cap_delete(shared_ptr<ImgCapture> &capture) {
+uint8_t ImgOpExecutor::cap_delete(shared_ptr<ImgCapture> capture) {
 
     // Pointer must not point to NULL.
     if (capture) {
@@ -251,65 +254,85 @@ uint8_t ImgOpExecutor::getResult(string identifier, shared_ptr<Value> &target) {
 
 uint8_t ImgOpExecutor::execute() {
 
-    uint8_t resultCount = 0;
+    try {
 
-    // At least primary image source exists.
-    if (this->imageCaptures.size()) {
+        uint8_t resultCount = 0;
 
-        // Next capture from camera + temp pointer for additional ones.
-        shared_ptr<cv::Mat> newest(this->imageCaptures[0]->getFrame());
-        shared_ptr<cv::Mat> temp;
+        // At least primary image source exists.
+        if (this->imageCaptures.size()) {
 
-        // 'newest' does not point to NULL.
-        if (newest) {
+            // Next capture from camera + temp pointer for additional ones.
+            shared_ptr<cv::Mat> newest(this->imageCaptures[0]->getFrame());
+            shared_ptr<cv::Mat> temp;
 
-            // Get iterator for operator instances.
-            auto opIt = this->imageOperators.begin();
+            // 'newest' does not point to NULL.
+            if (newest) {
 
-            // Iterate list of execution.
-            while (opIt != this->imageOperators.end()) {
+                /*
+                cerr << "ImgOpExecutor:                 operating on image of size " << newest->cols << "x" << newest->rows << endl;
 
-                stringstream cap;
-                cap << ARG_CAPTURE << (int)0;
-                (*opIt)->setValue(cap.str(), shared_ptr<ValMat>(new ValMat(newest)));
+                cv::imshow("Received", *newest); //display road image
 
-                // If operator requires more than one capture.
-                for (uint8_t capture=1;
-                        capture < (*opIt)->getCaptureCount() && capture < this->imageCaptures.size();
-                        capture++) {
+                if (cv::waitKey(1) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
+                {
+                    cout << "esc key is pressed by user" << endl;
+                }
+                 */
 
-                    cap.str(std::string());
-                    cap.clear();
-                    cap << ARG_CAPTURE << (int)capture;
+                // Get iterator for operator instances.
+                auto opIt = this->imageOperators.begin();
 
-                    // Get frame from image capture and set corresponding value of operator.
-                    temp = newest;  // TODO: Actually bind additional cameras.
-                    // temp = this->imageCaptures[capture]->getFrame();
-                    shared_ptr<ValMat> argValue(new ValMat(temp));
-                    (*opIt)->setValue(cap.str(), argValue);
+                // Iterate list of execution.
+                while (opIt != this->imageOperators.end()) {
+
+                    stringstream cap;
+                    cap << ARG_CAPTURE << (int)0;
+                    (*opIt)->setValue(cap.str(), shared_ptr<ValMat>(new ValMat(newest)));
+
+                    // If operator requires more than one capture.
+                    for (uint8_t capture=1;
+                            capture < (*opIt)->getCaptureCount() && capture < this->imageCaptures.size();
+                            capture++) {
+
+                        cap.str(std::string());
+                        cap.clear();
+                        cap << ARG_CAPTURE << (int)capture;
+
+                        // Get frame from image capture and set corresponding value of operator.
+                        // temp = newest;  // TODO: Actually bind additional cameras.
+                        temp = this->imageCaptures[capture]->getFrame();
+                        shared_ptr<ValMat> argValue(new ValMat(temp));
+                        (*opIt)->setValue(cap.str(), argValue);
+                    }
+
+                    // Process image from primary capture.
+                    unordered_map<string,shared_ptr<Value>> instanceResults;
+                    (*opIt)->apply(instanceResults);
+
+                    // Get iterator for results.
+                    auto resIt = instanceResults.begin();
+
+                    // Iterate list of results and add them to own list.
+                    while (resIt != instanceResults.end()) {
+
+                        this->setResult(resIt->first, resIt->second);
+                        resultCount++;
+                        resIt++;
+                    }
+                    opIt++;
                 }
 
-                // Process image from primary capture.
-                unordered_map<string,shared_ptr<Value>> instanceResults;
-                (*opIt)->apply(instanceResults);
-
-                // Get iterator for results.
-                auto resIt = instanceResults.begin();
-
-                // Iterate list of results and add them to own list.
-                while (resIt != instanceResults.end()) {
-
-                    this->setResult(resIt->first, resIt->second);
-                    resultCount++;
-                    resIt++;
-                }
-                opIt++;
             }
-
         }
+
+        return resultCount;
+
+    } catch(const std::system_error& e) {
+        std::cout << "\033[1;31m ImgOpExecutor: Caught system_error with code \033[0m " << e.code()
+                                                          << " meaning " << e.what() << '\n';
     }
 
-    return resultCount;
+    return 0;
 }
 
 

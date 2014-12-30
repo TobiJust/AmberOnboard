@@ -32,7 +32,8 @@ using namespace std;
 
 class ProcPayload : public FrontProcessor {
 public:
-    ProcPayload();
+
+    ProcPayload(uint8_t devID);
     virtual ~ProcPayload();
     virtual uint8_t push(shared_ptr<Message_M2C> output);
     virtual uint8_t pull(shared_ptr<Message_M2C> &input);
@@ -44,11 +45,12 @@ protected:
      */
 
 private:
+
+    uint8_t devID;
     timeval step1, step2;
     uint8_t packAcquiredData(
             queue< shared_ptr< deque< shared_ptr<vector<uint8_t>>>>> &packets,
-            shared_ptr<M2C_DataSet> data,
-            uint8_t devID);
+            shared_ptr<M2C_DataSet> data);
     void insertTelemetry(
             shared_ptr<vector<uint8_t>> &packet,
             shared_ptr<vector<uint8_t>> &data,
@@ -57,7 +59,7 @@ private:
     /*
     uint8_t unpackAcquiredData(deque<uint8_t> &packet,
             shared_ptr<AcquiredData_In> &data);
-    */
+     */
     uint8_t unpackAcquiredData(shared_ptr<M2C_DataAcquired> &data,
             shared_ptr<vector<uint8_t>> &packet,
             uint8_t *&begin,

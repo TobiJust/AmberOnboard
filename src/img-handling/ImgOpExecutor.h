@@ -45,15 +45,15 @@ public:
     uint8_t setResult(string identifier, shared_ptr<Value> &target);
     uint8_t getResult(string identifier, shared_ptr<Value> &target);
 
-    uint8_t cap_append(shared_ptr<ImgCapture> &capture);
-    uint8_t cap_delete(shared_ptr<ImgCapture> &capture);
+    uint8_t cap_append(shared_ptr<ImgCapture> capture);
+    uint8_t cap_delete(shared_ptr<ImgCapture> capture);
     uint8_t cap_delete(uint8_t index);
     void cap_clear();
     uint8_t cap_swap(uint8_t index1, uint8_t index2);
     uint8_t cap_firstIndexOf(uint8_t captureID);
 
-    uint8_t op_append(shared_ptr<ImgOperator> &op);
-    uint8_t op_delete(shared_ptr<ImgOperator> &op);
+    uint8_t op_append(shared_ptr<ImgOperator> op);
+    uint8_t op_delete(shared_ptr<ImgOperator> op);
     uint8_t op_delete(uint8_t index);
     void op_clear();
     uint8_t op_swap(uint8_t index1, uint8_t index2);

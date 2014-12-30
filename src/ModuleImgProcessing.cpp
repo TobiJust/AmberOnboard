@@ -13,8 +13,8 @@
 
 ModuleImgProcessing::ModuleImgProcessing() {
 
-    cerr << "\033[1;31m ModuleImgProcessing \033[0m: created ("<<this<<")" << endl;
-
+    cerr << "\033[1;31m ModuleImgProcessing \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
+/*
     // TODO: Create secondary image capture.
     // Create objects for image capture.
     shared_ptr<ImgCapture> cap_Primary(new CamCapture(1,1));
@@ -49,6 +49,7 @@ ModuleImgProcessing::ModuleImgProcessing() {
     // Finally add executors to the lists of children.
     this->addChild(prep_Exe);
     this->executors.insert(make_pair(PREPARE, prep_Exe));
+    */
 
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_DATA_ACQUIRED);
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
@@ -57,8 +58,7 @@ ModuleImgProcessing::ModuleImgProcessing() {
 
 ModuleImgProcessing::~ModuleImgProcessing() {
 
-
-    cerr << "\033[1;31m ModuleImgProcessing \033[0m: deleted ("<<this<<")" << endl;
+    cerr << "\033[1;31m ModuleImgProcessing \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
     /*
     auto exeIt = this->executors.begin();
 
@@ -68,6 +68,42 @@ ModuleImgProcessing::~ModuleImgProcessing() {
             delete cap;
     }
      */
+}
+
+uint8_t ModuleImgProcessing::exec_append(string key, shared_ptr<ImgOpExecutor> executor) {
+
+    cerr << "ModuleImgProcessing: EXECUTOR appending as " << key << endl;
+
+    // Executor reference must be valid and key not empty.
+    if (!executor) return IMG_PROC_ERR_INVALID_REFERENCE;
+
+    cerr << "ModuleImgProcessing: valid reference" << endl;
+
+    if (!key.length()) return IMG_PROC_ERR_UNKNOWN;
+
+    cerr << "ModuleImgProcessing: valid key" << endl;
+
+    // Add executor to list.
+    this->executors.insert(make_pair(key, executor));
+
+
+    return IMG_PROC_OK;
+
+}
+
+uint8_t ModuleImgProcessing::exec_delete(string key) {
+
+    // Key must not be empty.
+    if (key.length()) return IMG_PROC_ERR_UNKNOWN;
+
+    this->executors.erase(key);
+
+    return IMG_PROC_OK;
+}
+
+void ModuleImgProcessing::exec_clear() {
+
+    this->executors.clear();
 }
 
 uint8_t ModuleImgProcessing::countMsgFromChildren() {
@@ -97,6 +133,8 @@ shared_ptr<Message_M2M> ModuleImgProcessing::processMsg(shared_ptr<Message_M2M> 
         shared_ptr<M2M_DataSet> set(new M2M_DataSet);
 
         shared_ptr<ImgOpExecutor> prep_Exe = this->executors.find(PREPARE)->second;
+
+        cerr << (prep_Exe? "EXECUTOR exists" : "EXECUTOR does not exist!") << endl;
 
         if (prep_Exe) {
 

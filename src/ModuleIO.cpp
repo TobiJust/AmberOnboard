@@ -7,25 +7,47 @@
 
 #include "ModuleIO.h"
 
-ModuleIO::ModuleIO() {
+ModuleIO::ModuleIO(){
 
-    cerr << "\033[1;31m ModuleIO \033[0m: created ("<<this<<")" << endl;
+    cerr << "\033[1;31m ModuleIO \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
 
     // Register for message types.
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_IN);
     MsgHub::getInstance()->attachObserverToMsg(this, MSG_TERM_BROADCAST);
 
+    /*
     createStreamTerminal(cin, cout);
+     */
 }
 
 ModuleIO::~ModuleIO() {
 
-    cerr << "\033[1;31m ModuleIO \033[0m: deleted ("<<this<<")" << endl;
+    cerr << "\033[1;31m ModuleIO \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
+}
+
+bool ModuleIO::setup() {
+/*
+    // Load configuration file.
+    uint8_t status = this->conf.load();
+
+    // An error occurred.
+    if (status) {
+        this->conf.save();
+        return status;
+    }
+
+    vector<terminal> terminals = this->conf.getTerminals();
+*/
+}
+
+
+void createTerminal(string path, uint32_t baud) {
+
 }
 
 void ModuleIO::createStreamTerminal(istream& input, ostream& output) {
 
-
+    /*
 
     // Create StreamIO instance for handling stream input/output using
     // Polymorph (IOHandler) interface pointer to StreamIO.
@@ -33,9 +55,11 @@ void ModuleIO::createStreamTerminal(istream& input, ostream& output) {
 
     // Create and set up Terminal instance.
     createTerminal(s_ioH);
+     */
 
 }
 
+/*
 void ModuleIO::createTerminal(shared_ptr<IOHandler> hndl) {
 
     // Create new Terminal instance, using IOHandler reference.
@@ -46,6 +70,7 @@ void ModuleIO::createTerminal(shared_ptr<IOHandler> hndl) {
     addChild(term);
 
 }
+ */
 
 uint8_t ModuleIO::countMsgFromChildren() {
 
@@ -53,7 +78,7 @@ uint8_t ModuleIO::countMsgFromChildren() {
     uint8_t result = 0;
 
     // Count pending strings of standard input.
-    result += term->countInput();
+    //    result += term->countInput();
 
     return result;
 }
@@ -63,6 +88,7 @@ uint8_t ModuleIO::pollMsgFromChildren() {
     // Return value.
     uint8_t result = 0;
 
+    /*
     while(term->countInput()){
 
         shared_ptr<ValString> inputString(new ValString(term->getInput()));
@@ -73,6 +99,7 @@ uint8_t ModuleIO::pollMsgFromChildren() {
         result++;
 
     }
+     */
 
     return result;
 }
@@ -91,7 +118,7 @@ shared_ptr<Message_M2M> ModuleIO::processMsg(shared_ptr<Message_M2M> msg) {
         shared_ptr<M2C_TerminalOutput> outData(new M2C_TerminalOutput);
         outData->setValue(ARG_TERM_OUT, input);
 
-        term->out_push(dynamic_pointer_cast<Message_M2C>(outData));
+        //         term->out_push(dynamic_pointer_cast<Message_M2C>(outData));
         break;
     }
     case MSG_TERM_BROADCAST:
