@@ -1,51 +1,56 @@
-/*
- * ValContainer.cpp
+/** \brief      Container class for storing values.
  *
- *  Created on: 14.11.2014
- *      Author: Daniel Wagenknecht
+ * \details     This class stores a variable number of different data types, encapsulated as Value objects.
+ * \author      Daniel Wagenknecht
+ * \version     2014-11-14
+ * \class       ValContainer
  */
 
 #include "ValContainer.h"
 
-#include <iostream>
+/** \brief Constructor.
+ *
+ *  Default Constructor of value container instances.
+ */
+ValContainer::ValContainer() { }
 
-int ValContainer::count = 0;
-mutex ValContainer::countLock;
+/** \brief Destructor.
+ *
+ *  Destructor of value container instances.
+ */
+ValContainer::~ValContainer() { }
 
-ValContainer::ValContainer() {
-
-    /*
-    {
-        countLock.lock();
-        cerr << "\033[1;32mValContainer\033[0m: (" << this << ") count now " << ++count  << " ( + created )" << endl;
-        countLock.unlock();
-    }
-     */
-}
-
-ValContainer::~ValContainer() {
-
-    /*
-    {
-        countLock.lock();
-        cerr << "\033[1;31mValContainer\033[0m: (" << this << ") count now " << --count << " ( # deleted )" << endl;
-        countLock.unlock();
-    }
-     */
-}
-
+/** \brief Creates new value for this container.
+ *
+ *  Creates a new Value of the type specified in 'value', accessible through key 'name'.
+ *
+ *  \param name Name to identify the value.
+ *  \param value Instance to use as initial value.
+ */
 void ValContainer::createValue(string name, shared_ptr<Value> value) {
-
     config.insert(make_pair(name, value));
 }
 
+/** \brief Deletes a value from container.
+ *
+ *  Deletes the value with key 'name' from container.
+ *
+ *  \param name Name to identify the value.
+ */
 void ValContainer::deleteKey(string name) {
     config.erase(name);
 }
 
+/** \brief Sets a value in the container
+ *
+ *  Sets the value specified by 'name' to the Value instance specified by 'val'.
+ *  Returns a status indicator for this operation.
+ *
+ *  \param name Name to identify the value.
+ *  \param value New value instance.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ValContainer::setValue(string name, const shared_ptr<Value> &val) {
-
-    // cerr << "\033[1;33mValContainer\033[0m: (" << this << ") setting new value " << name << endl;
 
     // Get pair iterator for module name.
     auto valIt = config.find(name);
@@ -57,8 +62,6 @@ uint8_t ValContainer::setValue(string name, const shared_ptr<Value> &val) {
     // Type of argument does not match option type.
     if(val->getType() != valIt->second->getType())
         return ERR_TYPE_MISMATCH;
-
-
 
     // Switch Value type for setting appropriate data structure.
     switch (val->getType()) {
@@ -133,12 +136,19 @@ uint8_t ValContainer::setValue(string name, const shared_ptr<Value> &val) {
         return ERR_UNKNOWN;
     }
 
-    // cerr << "\033[1;32mValContainer\033[0m: successfull" << endl;
-
     return OK;
 
 }
 
+/** \brief Gets a value from container.
+ *
+ *  Writes the Value instance specified by 'name' to 'val'.
+ *  Returns a status indicator.
+ *
+ *  \param name Name to identify the value.
+ *  \param val Instance which after this operation holds the value.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ValContainer::getValue(string name, shared_ptr<Value> &val) {
 
     // Get pair iterator for module name.
@@ -159,21 +169,33 @@ uint8_t ValContainer::getValue(string name, shared_ptr<Value> &val) {
 
 }
 
+
+/** \brief Checks if all values are initialized.
+ *
+ *  Iterates through all values and checks if they are initialized.
+ *  Returns the result of that check.
+ *
+ *  \return true if all values are initialized, false otherwise.
+ */
 bool ValContainer::initialized() {
 
     // Check if all config values are initialized.
     for(auto it : config)
-        if(!it.second->isInitialized()){
-            // cerr << "ValContainer: value " << it.first << " uninited" << endl;
+        if(!it.second->isInitialized())
             return false;
-        }
 
     return true;
 
 }
 
-uint8_t ValContainer::getValueCount() {
 
+/** \brief Gets value count.
+ *
+ *  Returns the number of values currently stored in this container.
+ *
+ *  \return number of values in this container.
+ */
+uint8_t ValContainer::getValueCount() {
     return config.size();
 
 }

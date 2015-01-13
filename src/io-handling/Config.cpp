@@ -1,206 +1,270 @@
-/*
- * Config.cpp
+/** \brief      Configuration file parser.
  *
- *  Created on: 25.12.2014
- *      Author: Daniel Wagenknecht
+ * \details     This class parses a given configuration file and stores the given options for later usage.
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-25
+ * \class       Config
  */
 
 #include "Config.h"
 
-#include <iostream>
-
+/** \brief Constructor.
+ *
+ *  Constructor of Config instances, using 'path' as file path.
+ *
+ *  \param path Path to configuration file
+ */
 Config::Config(string path) : file(path) {
 
-    this->realtime.address="localhost";
-    this->realtime.port="5555";
+    // OBU identifier.
+    this->devID=0;
+
+    // Real time server struct.
     this->realtime.iface="eth0";
+    this->realtime.target="localhost";
+    this->realtime.port="3000";
 
-    this->non_realtime.address="localhost";
-    this->non_realtime.port="6666";
-    this->non_realtime.iface="eth1";
+    // Deferred server struct.
+    this->deferred.iface="eth1";
+    this->deferred.target="localhost";
+    this->deferred.port="3001";
 
-    this->caps.inner=0;
-    this->caps.outer=1;
-    this->caps.primary=1;
+    // Inner vehicle camera.
+    this->inner.index=0;
+    this->inner.fps=10;
 
-    this->gps_Module.path="/dev/ttySAC0";
-    this->gps_Module.baud=9600;
-    this->gps_Module.type=GPS_TYPE_ADAFRUIT;
+    // Outer vehicle camera.
+    this->outer.index=1;
+    this->outer.fps=10;
 
-    this->acc_Module.path="/dev/i2c-4";
-    this->acc_Module.addr=0x68;
-    this->acc_Module.type=ACC_TYPE_MPU6050;
+    // Members for image compression.
+    this->capPrimary=0;
+    this->comp=100;
+
+    // Accelerometer struct and type.
+    this->acc.path="i2c-4";
+    this->acc.addr=0x68;
+    this->accType=T_MPU6050;
+
+    // GPS sensor struct and type.
+    this->gps.path="ttySAC0";
+    this->gps.baud=9600;
+    this->gpsType=T_ADAFRUIT;
 }
 
+/** \brief Destructor.
+ *
+ *  Destructor of Config instances.
+ */
 Config::~Config() { }
 
-int Config::run() {
-
-    // Run until terminate is called.
-    while (!this->isTerminating()) {
-
-        // There are messages pending.
-        if (this->out_count()) {
-
-            while (this->out_count() && !this->isTerminating()) {
-
-                shared_ptr<Message_M2C> msg = this->out_pop();
-                // TODO: Handle messages.
-            }
-
-        } else
-            this->out_wait();
-    }
-
-    return 0;
-
-}
-
+/** \brief Loads configuration from file.
+ *
+ *  Loads the options from the given configuration file.
+ *  Returns status indicator.
+ *  In case of errors, getErrors returns a map<string,string> with the errors.
+ *
+ *  \return o in case of success, an error code otherwise.
+ */
 uint8_t Config::load() {
 
     // Config file content.
     string confString;
 
-    // Read config file.
-    uint8_t status = this->file.readOpen(confString, EOF);
+    // Check if file exists.
+    if (!this->file.exists()) {
+        this->errors.push_back(toString(this->file.getPath(), CONF_ERR_NO_SUCH_FILE));
+        return CONF_ERR_NO_SUCH_FILE;
+    }
 
-    if (status)
-        return CONF_ERR_IO;
+    // Read config file.
+    if(this->file.readOpen(confString, EOF)) {
+        this->errors.push_back(toString(this->file.getPath(), CONF_ERR_READ));
+        return CONF_ERR_READ;
+    }
 
     // Prepare file content for processing.
-    vector<string> lines;
-    prepare(confString, lines);
+    vector<string> lines = getLines(confString);
 
-    // Process config file content.
-    unordered_map<string, string> optErr;
-    status = process(lines /*, optErr*/);
+    // Iterate each line and process options.
+    for (auto it : lines)
+        process(it);
 
-    return CONF_OK;
-}
-
-uint8_t Config::save() {
-
-    // New file content.
-    stringstream result;
-
-    // Print config file heading.
-    result << COMMENT << "##############################  AMBER ON-BOARD CONFIGURATION  #############################\n";
-    result << "\n";
-
-    // TERMINAL OPTION SECTION.
-    printTermNote(result);
-
-    // Print successfully set options.
-    for (auto it : this->terminals) {
-
-        result << OPT_TERMINAL << KEY_VAL_DELIM;
-        result << it.path << VAL_VAL_DELIM;
-        result << it.baud << VAL_VAL_DELIM;
-        result << (it.status? "s":"");
-        result << (it.error?  "f":"");
-        result << (it.pos?    "p":"");
-        result << (it.vel?    "v":"");
-        result << (it.event?  "e":"") << "\n";
-    }
-
-    // Print failed options.
-    auto err = this->optErr.find(OPT_TERMINAL);
-    if (err != this->optErr.end())
-        result << err->second;
-    result << "\n";
-
-    // SERVER OPTION SECTION.
-    printServNote(result);
-
-    // Realtime options.
-    result << OPT_SERV_RT << KEY_VAL_DELIM;
-    result << this->realtime.address << VAL_VAL_DELIM;
-    result << this->realtime.port << VAL_VAL_DELIM;
-    result << this->realtime.iface << "\n";
-
-    // Non-realtime options.
-    result << OPT_SERV_NONRT << KEY_VAL_DELIM;
-    result << this->non_realtime.address << VAL_VAL_DELIM;
-    result << this->non_realtime.port << VAL_VAL_DELIM;
-    result << this->non_realtime.iface << "\n";
-
-    // Print failed options.
-    err = this->optErr.find(OPT_SERV_RT);
-    if (err != this->optErr.end())
-        result << err->second;
-    err = this->optErr.find(OPT_SERV_NONRT);
-    if (err != this->optErr.end())
-        result << err->second;
-    result << "\n";
-
-    // CAPTURE OPTION SECTION.
-    printCapsNote(result);
-
-    // Capture options.
-    result << OPT_CAPTURES << KEY_VAL_DELIM;
-    result << (uint16_t)this->caps.inner << VAL_VAL_DELIM;
-    result << (uint16_t)this->caps.outer << VAL_VAL_DELIM;
-    result << (uint16_t)this->caps.primary << "\n";
-
-    // Print failed options.
-    err = this->optErr.find(OPT_CAPTURES);
-    if (err != this->optErr.end())
-        result << err->second;
-    result << "\n";
-
-    // GPS OPTION SECTION.
-    printGPSNote(result);
-
-    // GPS options.
-    result << OPT_GPS << KEY_VAL_DELIM;
-    result << this->gps_Module.path << VAL_VAL_DELIM;
-    result << this->gps_Module.baud << VAL_VAL_DELIM;
-    result << (this->gps_Module.type==GPS_TYPE_ADAFRUIT? GPS_ADAFRUIT : "") << "\n";
-
-    // Print failed options.
-    err = this->optErr.find(OPT_GPS);
-    if (err != this->optErr.end())
-        result << err->second;
-    result << "\n";
-
-    // ACC OPTION SECTION.
-    printAccNote(result);
-
-    // Acceleration sensor options.
-    result << OPT_ACC << KEY_VAL_DELIM;
-    result << this->acc_Module.path << VAL_VAL_DELIM;
-    result << this->acc_Module.addr << VAL_VAL_DELIM;
-    result << (this->acc_Module.type==ACC_TYPE_MPU6050? ACC_MPU6050 : "") << "\n";
-
-    // Print failed options.
-    err = this->optErr.find(OPT_ACC);
-    if (err != this->optErr.end())
-        result << err->second;
-    result << "\n";
-
-    // Print general errors.
-    err = this->optErr.find(OPT_UNKNOWN);
-    if (err != this->optErr.end() && err->second.size()) {
-        result << "\n"<< COMMENT << "####################################  GENERAL ERRORS  ####################################\n";
-        result << err->second;
-    }
-
-    this->file.write(result.str());
+    // Validate configuration.
+    if (!validate())
+        return CONF_ERR_INVALID;
 
     return CONF_OK;
 }
 
-uint8_t Config::getTermCount() {
-    return this->terminals.size();
+/** \brief Returns errors from loading.
+ *
+ *  Returns all errors happened while loading the configuration.
+ *
+ *  \return Map<string,string> containing errors.
+ */
+vector<string> Config::getErrors() {
+    return this->errors;
 }
 
-bool Config::getTermAt(uint8_t index, terminal &term) {
+/** \brief Getter for device id.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param devID The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getDeviceID(uint8_t &devID) {
 
-    // Validate index.
-    if (index < getTermCount()) {
+    if (this->parsed.find(OPT_OBU_ID) != this->parsed.end()) {
+        devID = this->devID;
+        return true;
+    }
 
-        // Set new terminal content.
-        term=this->terminals.at(index);
+    return false;
+}
+
+/** \brief Getter for realtime server.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param serv The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getRealTime(server &serv) {
+
+    if (this->parsed.find(OPT_REAL_ADDR) != this->parsed.end() &&
+            this->parsed.find(OPT_REAL_IFACE) != this->parsed.end()) {
+        serv=this->realtime;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for deferred server.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param serv The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getDeferred(server &serv) {
+
+    if (this->parsed.find(OPT_DEF_ADDR) != this->parsed.end() &&
+            this->parsed.find(OPT_DEF_IFACE) != this->parsed.end()) {
+        serv=this->realtime;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for in car camera.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param cap The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getInnerCap(capture &cap) {
+
+    if (this->parsed.find(OPT_CAP_IN) != this->parsed.end()) {
+        cap=this->inner;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for outer car camera.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param cap The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getOuterCap(capture &cap) {
+
+    if (this->parsed.find(OPT_CAP_OUT) != this->parsed.end()) {
+        cap=this->outer;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for primary camera index.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param index The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getPrimeCap(uint8_t &index) {
+
+    if (this->parsed.find(OPT_CAP_PRIME) != this->parsed.end()) {
+        index=this->capPrimary;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for JPEG compression.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param comp The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getJpegCompression(uint8_t &comp) {
+
+    if (this->parsed.find(OPT_CAP_COMP) != this->parsed.end()) {
+        comp=this->comp;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for accelerometer type.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param type The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getAccType(uint8_t &type) {
+
+    if (this->parsed.find(OPT_ACC_TYPE) != this->parsed.end()) {
+        type=this->accType;
+        return true;
+    }
+
+    return false;
+}
+
+/** \brief Getter for accelerometer options.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param dev The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getAcc(i2cDev &dev) {
+
+    if (this->parsed.find(OPT_ACC_DEV) != this->parsed.end()) {
+        dev=this->acc;
         return true;
     }
 
@@ -208,47 +272,72 @@ bool Config::getTermAt(uint8_t index, terminal &term) {
 
 }
 
-void Config::getServRT(server &serv) {
+/** \brief Getter for gps type.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param type The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getGPSType(uint8_t &type) {
 
-    serv.address = this->realtime.address;
-    serv.port = this->realtime.port;
-    serv.iface = this->realtime.iface;
+    if (this->parsed.find(OPT_GPS_TYPE) != this->parsed.end()) {
+        type=this->gpsType;
+        return true;
+    }
+
+    return false;
+
 }
 
-void Config::getServNonRT(server &serv) {
+/** \brief Getter for gps options.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param dev The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getGPS(uartDev &dev) {
 
-    serv.address = this->non_realtime.address;
-    serv.port = this->non_realtime.port;
-    serv.iface = this->non_realtime.iface;
+    if (this->parsed.find(OPT_GPS_DEV) != this->parsed.end()) {
+        dev=this->gps;
+        return true;
+    }
+
+    return false;
 
 }
 
-int16_t Config::getOuterCap() {
-    return this->caps.outer;
+/** \brief Getter for obd options.
+ *
+ *  Writes option to parameter.
+ *  Returns success state.
+ *
+ *  \param dev The parameter to write the option to.
+ *  \return True on success, false in case of error.
+ */
+bool Config::getOBD(uartDev &dev) {
+
+    if (this->parsed.find(OPT_OBD_DEV) != this->parsed.end()) {
+        dev=this->obd;
+        return true;
+    }
+
+
+    return false;
+
 }
 
-int16_t Config::getInnerCap() {
-    return this->caps.inner;
-}
-
-int16_t Config::getPrimaryCap() {
-    return this->caps.primary;
-}
-
-void Config::getGPS(gps &module) {
-
-    module.path = this->gps_Module.path;
-    module.baud = this->gps_Module.baud;
-    module.type = this->gps_Module.type;
-}
-
-void Config::getAcc(acc &module) {
-
-    module.path = this->acc_Module.path;
-    module.addr = this->acc_Module.addr;
-    module.type = this->acc_Module.type;
-}
-
+/** \brief Helper method for tokenizing.
+ *
+ *  Tokenizes string 'source' by delimiter 'delim' and writes all tokens to 'target'
+ *
+ *  \param source Source string.
+ *  \param target Target vector.
+ *  \param delim Delimiter for tokenizing.
+ */
 void Config::tokenize(string source, vector<string> &target, char delim) {
 
     istringstream stream(source);
@@ -257,470 +346,695 @@ void Config::tokenize(string source, vector<string> &target, char delim) {
     }
 }
 
-void Config::prepare(string source, vector<string> &target) {
+/** \brief Helper method for shrinking strings.
+ *
+ *  Determines in string 'target' beginning at position 'start' the first and the last character
+ *  not contained in 'compare'. If 'substr' is true, a substring is builded from these bounds.
+ *  Otherwise, the characters in these bounds are erased.
+ *
+ *  \param target The source string and the target where the result is written to.
+ *  \param compare String containing all characters to check.
+ *  \param start the start position in the string.
+ *  \param substr Whether to build a substring or delete the found characters.
+ *  \return true on success, false in case of error.
+ */
+bool Config::shrink(string &target, string compare, size_t start, bool substr) {
+
+    // Check if index is in string bounds.
+    if ( !target.length() || !compare.length() )
+        return false;
+
+    // Initialize lower and upper bounds.
+    size_t lower=start, upper=start;
+
+    // Find last occurrence before start.
+    if ((lower=target.find_last_not_of(compare,lower)) == string::npos)
+        lower=0;
+    else if (target.find_last_not_of(compare.c_str(), lower, 1) != string::npos)
+        lower++;
+
+    // Find first occurrence after start.
+    // Since erase ignores upper bound, no index condition must be handled.
+    if ((upper=target.find_first_not_of(compare,upper))==string::npos)
+        upper=target.size();
+
+    // Erase or create concerned substring.
+    if (upper > lower) {
+        if (substr)
+            target=target.substr(lower, upper-lower);
+        else
+            target.erase(target.begin()+lower, target.begin()+upper);
+    }
+
+    // Operation successful.
+    return true;
+}
+
+/** \brief Helper method for parsing strings to integers.
+ *
+ *  Parses source to an integer and checks if the result is in bounds between 'min' and 'max'.
+ *  The result is written to 'target'.
+ *
+ *  \param source The source string to parse.
+ *  \param max Upper integer bounds.
+ *  \param min Lower integer bounds.
+ *  \param target Targeet integer where the result is written to.
+ *  \return true on success, false in case of error.
+ */
+bool Config::toInteger(string source, int64_t max, int64_t min, int64_t &target) {
+
+    // Check if it is a valid number.
+    if ( source.find_first_not_of("0123456789-")==string::npos ) {
+
+        // Tmp integer for checking range.
+        int64_t tmp=0;
+        istringstream ( source ) >> tmp;
+
+        // Integer is in range.
+        if (tmp <= max && tmp >= min) {
+            target=tmp;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/** \brief Seperates a given string by line feed.
+ *
+ *  Tokenizes a string by '\n' character and deletes comments.
+ *
+ *  \param source The source string to tokenize.
+ *  \return A vector of tokenized strings.
+ */
+vector<string> Config::getLines(string source) {
+
+    vector<string> result;
 
     // Split file content by line.
-    tokenize(source, target, '\n');
+    tokenize(source, result, '\n');
 
     // Remove comments from file content.
-    for (auto it = target.begin(); it != target.end(); it++) {
+    for (auto it = result.begin(); it != result.end(); it++) {
 
-        size_t position = it->find_first_of("#");
+        size_t position = it->find_first_of(COMMENT);
         if (position != string::npos)
             it->erase(position, string::npos);
     }
 
+    // Delete EOF if necessary
+    if ((result.end()-1)->length() && (result.end()-1)->back() == EOF)
+        (result.end()-1)->pop_back();
+
     // Remove empty lines.
-    for (auto it = target.begin(); it != target.end();) {
+    for (auto it = result.begin(); it != result.end();) {
         if (it->size())
             ++it;
         else
-            it=target.erase(it);
+            it=result.erase(it);
     }
 
-    // Erase EOF line.
-    target.erase(target.end()-1);
+    return result;
 }
 
-uint8_t Config::process(vector<string> &source /*, unordered_map<string, string> &optErr*/) {
+/** \brief Parses a string into key-value tuples.
+ *
+ *  Tokenizes a string by key-value delimiter and splits the value into subvalues.
+ *
+ *  \param source The source string to parse.
+ *  \param target The target vector, containing the key at first position.
+ *  \return true on success, false in case of error.
+ */
+bool Config::toKeyValue(string source, vector<string> &target) {
 
-    // New file content.
-    // stringstream failStream;
+    vector<string> result;
 
-    stringstream unknownErr;
-    unordered_set<string> processed, terminals;
-    // unordered_map<string, string> optErr;
+    // Split content by key-value delimiter.
+    tokenize(source, result, KEY_VAL_DELIM);
 
-    // Iterate over lines and extract configuration.
-    for (auto lineIt : source) {
+    // Overall option syntax is <option>=<value(0)>: .. :<value(n)>.
+    if (result.size() != 2)
+        return false;
 
-        // Split content into key-value pairs.
-        vector<string> tmp;
-        tokenize(lineIt, tmp, KEY_VAL_DELIM);
+    // Split all values of the option by value-value delimiter.
+    tokenize(result.at(1), result, VAL_VAL_DELIM);
 
-        // Check validity of key-value pair.
-        if (tmp.size()!=2) {
-            unknownErr << COMMENT << " Ignored incomplete/invalid option: \"" << lineIt << "\".\n";
-            continue;
-        }
+    // Delete unnecessary field.
+    result.erase(result.begin()+1);
 
-        // cerr << "tmp[0]="<< tmp[0] << endl;
-
-        // Option for terminal.
-        if (!EQUALS(tmp[0], 0, OPT_TERMINAL)) {
-
-            terminal term;
-            stringstream termErr;
-
-            // Process terminal options.
-            if (procTerm(tmp[0], tmp[1], term, termErr)) {
-
-                // Terminal not yet configured.
-                if (terminals.find(term.path) == terminals.end()) {
-                    terminals.insert(term.path);
-                    this->terminals.push_back(term);
-                }
-
-                else // Terminal configuration already existing.
-                    termErr << COMMENT << " Ignored duplicate terminal: \"" << lineIt << "\".\n";
-            }
-
-            insertOrAppend(this->optErr, string(OPT_TERMINAL), termErr);
-        }
-
-        // Option for real time server.
-        else if (!EQUALS(tmp[0], 0, OPT_SERV_RT) ) {
-
-            stringstream servErr;
-
-            // Real time server not yet configured.
-            if (processed.find(OPT_SERV_RT) == processed.end()) {
-
-                if (procServ(tmp[0], tmp[1], this->realtime, servErr))
-                    processed.insert(OPT_SERV_RT);
-
-            } else // Real time server configuration already existing.
-                servErr << COMMENT << " Ignored duplicate server config: \"" << lineIt << "\".\n";
-
-            insertOrAppend(this->optErr, OPT_SERV_RT, servErr);
-        }
-
-        // Option for non-real time server.
-        else if (!EQUALS(tmp[0], 0, OPT_SERV_NONRT) ) {
-
-            stringstream servErr;
-
-            // Real time server not yet configured.
-            if (processed.find(OPT_SERV_NONRT) == processed.end()) {
-
-                if (procServ(tmp[0], tmp[1], this->non_realtime, servErr))
-                    processed.insert(OPT_SERV_NONRT);
-
-            } else // Real time server configuration already existing.
-                servErr << COMMENT << " Ignored duplicate server config: \"" << lineIt << "\".\n";
-
-            insertOrAppend(this->optErr, OPT_SERV_NONRT, servErr);
-
-        } else if (!EQUALS(tmp[0], 0, OPT_CAPTURES) ) {
-
-            stringstream servErr;
-
-            // Real time server not yet configured.
-            if (processed.find(OPT_CAPTURES) == processed.end()) {
-
-                if (procCaps(tmp[0], tmp[1], this->caps, servErr))
-                    processed.insert(OPT_CAPTURES);
-
-            } else // Real time server configuration already existing.
-                servErr << COMMENT << " Ignored duplicate capture config: \"" << lineIt << "\".\n";
-
-            insertOrAppend(this->optErr, OPT_CAPTURES, servErr);
-
-        } else if (!EQUALS(tmp[0], 0, OPT_GPS) ) {
-
-            stringstream servErr;
-
-            // Real time server not yet configured.
-            if (processed.find(OPT_GPS) == processed.end()) {
-
-                if (procGPS(tmp[0], tmp[1], this->gps_Module, servErr))
-                    processed.insert(OPT_GPS);
-
-            } else // Real time server configuration already existing.
-                servErr << COMMENT << " Ignored duplicate gps config: \"" << lineIt << "\".\n";
-
-            insertOrAppend(this->optErr, OPT_GPS, servErr);
-
-        } else if (!EQUALS(tmp[0], 0, OPT_ACC) ) {
-
-            stringstream servErr;
-
-            // Real time server not yet configured.
-            if (processed.find(OPT_ACC) == processed.end()) {
-
-                if (procAcc(tmp[0], tmp[1], this->acc_Module, servErr))
-                    processed.insert(OPT_ACC);
-
-            } else // Real time server configuration already existing.
-                servErr << COMMENT << " Ignored duplicate acc config: \"" << lineIt << "\".\n";
-
-            insertOrAppend(this->optErr, OPT_ACC, servErr);
-
-        } else
-            unknownErr << COMMENT << " Ignored invalid option: \"" << lineIt << "\".\n";
-
+    // Delete unnecessary blank spaces and copy values to target.
+    for (auto it = result.begin(); it != result.end(); it++) {
+        shrink(*it, " ", 0);                // Leading spaces.
+        shrink(*it, " ", it->length()-1);   // Tailing spaces.
+        target.push_back(*it);              // Copy.
     }
 
-    this->optErr.insert(make_pair(OPT_UNKNOWN, unknownErr.str()));
+    return true;
+}
+
+/** \brief Converts string to absolute path.
+ *
+ *  Checks whether string contains an absolute path.
+ *  Appends "/dev/" as default if not.
+ *
+ *  \param source The source string to convert.
+ *  \param target The target string to write the result to.
+ */
+void Config::toAbsPath(string source, string &target) {
+
+    // Check if source already contains absolute path.
+    if ( source[0] != '/' )
+        target=static_cast<ostringstream*>( &(ostringstream() << DEV_PATH << source) )->str();
+    else
+        target=source;
+}
+
+/** \brief Converts an error code to human readable output.
+ *
+ *  Returns error code 'status' for option 'option' in human readable form
+ *
+ *  \param option The option causing the error.
+ *  \param status The error code.
+ *  \return Error string in human readable form.
+ */
+string Config::toString(string option, uint8_t status) {
+
+    stringstream result;
+    result << "Error (" << (uint16_t)status << "): ";
+
+    // Build message depending on status id.
+    switch (status) {
+
+    case CONF_ERR_NO_SUCH_FILE:
+        result << "File '" << option << "' does not exist.";
+        break;
+
+    case CONF_ERR_READ:
+        result << "Could not read File '" << option << "'.";
+        break;
+
+    case CONF_ERR_UNKNOWN_OPT:
+        result << "'" << option << "' does not name a valid option.";
+        break;
+
+    case CONF_ERR_ALREADY_SET:
+        result << "'" << option << "' already in use.";
+        break;
+
+    case CONF_ERR_TUPLE:
+        result << "No key-value pair: '" << option << "'.";
+        break;
+
+    case CONF_ERR_COUNT_MISMATCH:
+        result << "Invalid argument count for option '" << option << "'.";
+        break;
+
+    case CONF_ERR_INVALID:
+        result << "Unexpected argument value/type for option '" << option << "'.";
+        break;
+
+    case CONF_ERR_UNSET:
+        result << "'" << option << "' not properly set.";
+        break;
+
+    default:
+        result << "Unknown error occurred while parsing option '" << option << "'.";
+        break;
+    }
+
+    return result.str();
+}
+
+/** \brief Processes string.
+ *
+ *  Processes string 'source' from configuration
+ *
+ *  \param source The string to process.
+ */
+void Config::process(string source) {
+
+    vector<string> tmp;
+    uint8_t status;
+
+    // Extract key-value tuple.
+    if (!toKeyValue(source, tmp)) {
+        this->errors.push_back(toString(source, CONF_ERR_TUPLE));
+        return;
+    }
+
+    // Convert key to lower case for comparison.
+    transform(tmp[0].begin(), tmp[0].end(), tmp[0].begin(), ::tolower);
+
+    if (this->parsed.find(tmp[0]) != this->parsed.end())
+        status=CONF_ERR_ALREADY_SET;
+
+    else {
+
+            // Extract id of the on-board unit.
+            if (EQUALS(tmp[0], 0, OPT_OBU_ID))
+                status = procID(tmp, this->devID);
+
+             else if (EQUALS(tmp[0], 0, OPT_REAL_ADDR))
+                status = procSvr(tmp, this->realtime);
+
+            // Extract network interface for real time server.
+            else if (EQUALS(tmp[0], 0, OPT_REAL_IFACE))
+                status = procIface(tmp, this->realtime);
+
+            // Extract deferred server data.
+            else if (EQUALS(tmp[0], 0, OPT_DEF_ADDR))
+                status = procSvr(tmp, this->deferred);
+
+            // Extract network interface deferred server.
+            else if (EQUALS(tmp[0], 0, OPT_DEF_IFACE))
+                status = procIface(tmp, this->deferred);
+
+            // Extract index of outer camera.
+            else if (EQUALS(tmp[0], 0, OPT_CAP_OUT))
+                status = procCapture(tmp, this->outer);
+
+            // Extract index of inner camera.
+            else if (EQUALS(tmp[0], 0, OPT_CAP_IN))
+                status = procCapture(tmp, this->inner);
+
+            // Extract index of primary camera.
+            else if (EQUALS(tmp[0], 0, OPT_CAP_PRIME))
+                status = procPrimary(tmp, this->capPrimary);
+
+            // Extract compression rate.
+            else if (EQUALS(tmp[0], 0, OPT_CAP_COMP))
+                status = procCompression(tmp, this->comp);
+
+            // Extract gps port data.
+            else if (EQUALS(tmp[0], 0, OPT_GPS_DEV))
+                status = procGPS(tmp, this->gps);
+
+            // Extract gps device type.
+            else if (EQUALS(tmp[0], 0, OPT_GPS_TYPE))
+                status = procGPSType(tmp, this->gpsType);
+
+            // Extract acc port data.
+            else if (EQUALS(tmp[0], 0, OPT_ACC_DEV))
+                status = procAcc(tmp, this->acc);
+
+            // Extract acc device type.
+            else if (EQUALS(tmp[0], 0, OPT_ACC_TYPE))
+                status = procAccType(tmp, this->accType);
+
+            // Extract gps port data.
+            else if (EQUALS(tmp[0], 0, OPT_OBD_DEV))
+                status = procOBD(tmp, this->obd);
+
+            else    // Not a valid option.
+                status = CONF_ERR_UNKNOWN_OPT;
+        }
+
+    // Check if an error occurred.
+    if (status) this->errors.push_back(toString(tmp[0], status));
+    else this->parsed.insert(tmp[0]);
+}
+
+/** \brief Validates the configuration.
+ *
+ *  Validates the given options.
+ *
+ *  \return true if configuration is valid, false otherwise.
+ */
+bool Config::validate() {
+
+    bool result=true;
+
+    // List of known Options.
+    vector<string> keys {
+        OPT_OBU_ID,
+        OPT_REAL_ADDR,
+        OPT_REAL_IFACE,
+        OPT_DEF_ADDR,
+        OPT_DEF_IFACE,
+        OPT_CAP_OUT,
+        OPT_CAP_IN,
+        OPT_CAP_PRIME,
+        OPT_CAP_COMP,
+        OPT_GPS_DEV,
+        OPT_GPS_TYPE,
+        OPT_ACC_DEV,
+        OPT_ACC_TYPE
+    };
+
+    // Check if all options are set.
+    for (string current : keys)
+        if (this->parsed.find(current) == this->parsed.end()) {
+            this->errors.push_back(toString(current, CONF_ERR_UNSET));
+            result=false;
+        }
+
+    // Check if primary camera index is set to a known camera.
+    if (this->capPrimary != this->inner.index && this->capPrimary != this->outer.index) {
+        this->errors.push_back(toString(OPT_CAP_PRIME, CONF_ERR_INVALID));
+        result=false;
+    }
+
+    return result;
+}
+
+/** \brief Processes device id.
+ *
+ *  Parses the device id option from 'source 'and writes it to devId.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param devId target to write to.
+ */
+uint8_t Config::procID(vector<string> source, uint8_t &devId) {
+
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert string to integer.
+    int64_t value=0;
+    if (!toInteger(source[1], UINT8_MAX-1, 0, value))
+        return CONF_ERR_INVALID;
+
+    // Set new value.
+    devId = value;
 
     return CONF_OK;
 }
 
-bool Config::procTerm(string key, string value, terminal &term, stringstream &failures) {
+/** \brief Processes terminal options.
+ *
+ *  Parses the terminal information from 'source 'and writes it to term.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param devId target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procTerm(vector<string> source, terminal &term) {
 
-    // Vector of arguments.
-    vector<string> valVector;
-    tokenize(value, valVector, VAL_VAL_DELIM);
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
 
-    cerr << "procTerm 1" << endl;
+    // Convert address string to integer.
+    int64_t baud=0;
+    if (!toInteger(source[2], INT64_MAX, 1, baud))
+        return CONF_ERR_INVALID;
 
-    term.path="";
-    term.baud=9600;
-    term.status=false;
-    term.error=false;
-    term.pos=false;
-    term.vel=false;
-    term.event=false;
+    // Set value.
+    toAbsPath(source[1], term.path);
+    term.baud=baud;
 
-    // First value (path) exists.
-    if (valVector.size()>0 && valVector[0].length())
-        term.path=valVector[0];
-    else {
-        failures << COMMENT << " Missing terminal path: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    cerr << "procTerm 2" << endl;
-
-    // Second value (baud rate) exists.
-    if (valVector.size()>1) {
-
-        if (valVector[1].size() > 0 && valVector[1].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[1] ) >> term.baud;
-        else {
-            failures << COMMENT << " Invalid baud rate: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
-
-    } else {
-        failures << COMMENT << " Missing baud rate: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    cerr << "procTerm 3" << endl;
-
-    // Third value (output flags) exists.
-    if (valVector.size()>2) {
-
-        if (valVector[1].size() > 0) {
-
-            // Set output flags.
-            if (valVector[2].find('s') != string::npos)
-                term.status=true;
-            if (valVector[2].find('f') != string::npos)
-                term.error=true;
-            if (valVector[2].find('p') != string::npos)
-                term.pos=true;
-            if (valVector[2].find('v') != string::npos)
-                term.vel=true;
-            if (valVector[2].find('e') != string::npos)
-                term.event=true;
-
-            if (valVector[2].find_first_not_of("sfpve") != string::npos)
-                failures << COMMENT << " Ignoring unknown options: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        }
-    }
-
-    cerr << "procTerm 3" << endl;
-
-    return true;
+    return CONF_OK;
 }
 
-bool Config::procServ(string key, string value, server &serv, stringstream &failures) {
+/** \brief Processes server options.
+ *
+ *  Parses the server information from 'source 'and writes it to server.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param server target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procSvr(vector<string> source, server &server) {
 
-    // Vector of arguments.
-    vector<string> valVector;
-    tokenize(value, valVector, VAL_VAL_DELIM);
+    // Resulting server struct.
+    struct server result;
 
-    // First value (addr) exists.
-    if (valVector.size()>0 && valVector[0].length())
-        serv.address=valVector[0];
-    else {
-        failures << COMMENT << " Missing server address: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert string to integer.
+    int64_t port=0;
+    if (!toInteger(source[2], UINT16_MAX, 1, port))
+        return CONF_ERR_INVALID;
+
+    // Set new port.
+    result.port=static_cast<ostringstream*>( &(ostringstream() << port) )->str();
+
+    // Check if given characters are either alphanumeric or one of '-' || '.' || ':'.
+    for (char current : source[1]) {
+        if (!isalnum(current) && current != '-' && current != '.' && current != ':' )
+            return CONF_ERR_INVALID;
     }
 
-    // Second value (port) exists.
-    if (valVector.size()>1 && valVector[1].length()) {
+    // Address seems valid, everything's fine.
+    result.target = source[1];
 
-        if (valVector[1].size() > 0 && valVector[1].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[1] ) >> serv.port;
-        else {
-            failures << COMMENT << " Invalid port: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
+    server = result;
 
-    } else {
-        failures << COMMENT << " Missing port: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
+    return CONF_OK;
 
-    // Third value (iface) exists.
-    if (valVector.size()>2 && valVector[2].length())
-        serv.iface=valVector[2];
-    else {
-        failures << COMMENT << " Missing network interface: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    return true;
+    return CONF_OK;
 }
 
-bool Config::procCaps(string key, string value, captures &caps, stringstream &failures) {
+/** \brief Processes network interface options.
+ *
+ *  Parses the interface information from 'source 'and writes it to server.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param server target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procIface(vector<string> source, server &server) {
 
-    // Vector of arguments.
-    vector<string> valVector;
-    tokenize(value, valVector, VAL_VAL_DELIM);
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
 
-    // First value (inner camera) exists.
-    if (valVector.size()>0 && valVector[0].length()) {
-        if (valVector[0].size() > 0 && valVector[0].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[0] ) >> caps.inner;
-    } else {
-        failures << COMMENT << " Missing inner camera: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
+    // Check if given characters are either alphanumeric or '-'.
+    for (char current : source[1]) {
+        if (!isalnum(current) && current != '-')
+            return CONF_ERR_INVALID;
     }
 
-    // Second value (outer camera) exists.
-    if (valVector.size()>1 && valVector[1].length()) {
-        if (valVector[1].size() > 0 && valVector[1].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[1] ) >> caps.outer;
-    } else {
-        failures << COMMENT << " Missing outer camera: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
+    server.iface=source[1];
 
-    // Third value (primary camera) exists.
-    if (valVector.size()>2 && valVector[2].length()) {
-        if (valVector[2].size() > 0 && valVector[2].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[2] ) >> caps.primary;
-    } else {
-        failures << COMMENT << " Missing primary camera: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    return true;
+    return CONF_OK;
 }
 
-bool Config::procGPS(string key, string value, gps &gps, stringstream &failures) {
+/** \brief Processes capture options.
+ *
+ *  Parses the capture information from 'source 'and writes it to cap.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param cap target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procCapture(vector<string> source, capture &cap) {
 
-    // Vector of arguments.
-    vector<string> valVector;
-    tokenize(value, valVector, VAL_VAL_DELIM);
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
 
-    // First value (path) exists.
-    if (valVector.size()>0 && valVector[0].length())
-        gps.path=valVector[0];
-    else {
-        failures << COMMENT << " Missing device path: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
+    capture result;
 
-    // Second value (baud rate) exists.
-    if (valVector.size()>1 && valVector[1].length()) {
+    // Convert index string to integer.
+    int64_t value=0;
+    if (!toInteger(source[1], UINT8_MAX-1, 0, value))
+        return CONF_ERR_INVALID;
 
-        if (valVector[1].size() > 0 && valVector[1].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[1] ) >> gps.baud;
-        else {
-            failures << COMMENT << " Invalid baud rate: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
+    result.index=value;
 
-    } else {
-        failures << COMMENT << " Missing baud rate: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
+    // Convert fps string to integer.
+    if (!toInteger(source[2], UINT8_MAX, 1, value))
+        return CONF_ERR_INVALID;
 
-    // Second value (baud rate) exists.
-    if (valVector.size()>2 && valVector[2].length()) {
+    result.fps=value;
 
-        if (!EQUALS(valVector[2], 0, GPS_ADAFRUIT))
-            gps.type=GPS_TYPE_ADAFRUIT;
-        else {
-            failures << COMMENT << " Invalid module type: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
+    // Set new value.
+    cap = result;
 
-    } else {
-        failures << COMMENT << " Missing module type: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    return true;
-
+    return CONF_OK;
 }
 
-bool Config::procAcc(string key, string value, acc &acc, stringstream &failures) {
+/** \brief Processes primary capture option.
+ *
+ *  Parses the prime capture option from 'source 'and writes it to prime.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param prime target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procPrimary(vector<string> source, uint8_t &prime) {
 
-    // Vector of arguments.
-    vector<string> valVector;
-    tokenize(value, valVector, VAL_VAL_DELIM);
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
 
-    // First value (path) exists.
-    if (valVector.size()>0 && valVector[0].length())
-        acc.path=valVector[0];
-    else {
-        failures << COMMENT << " Missing device path: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
+    // Convert string to integer.
+    int64_t value=0;
+    if (!toInteger(source[1], UINT8_MAX-1, 0, value))
+        return CONF_ERR_INVALID;
 
-    // Second value (baud rate) exists.
-    if (valVector.size()>1 && valVector[1].length()) {
+    // Set new value.
+    prime = value;
 
-        if (valVector[1].size() > 0 && valVector[1].find_first_not_of("0123456789")==string::npos)
-            istringstream ( valVector[1] ) >> acc.addr;
-        else {
-            failures << COMMENT << " Invalid device address: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
-
-    } else {
-        failures << COMMENT << " Missing device address: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    // Second value (baud rate) exists.
-    if (valVector.size()>2 && valVector[2].length()) {
-
-        if (!EQUALS(valVector[2], 0, ACC_MPU6050))
-            acc.type=ACC_TYPE_MPU6050;
-        else {
-            failures << COMMENT << " Invalid module type: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-            return false;
-        }
-
-    } else {
-
-        failures << COMMENT << " Missing module type: \"" << key << KEY_VAL_DELIM << value << "\".\n";
-        return false;
-    }
-
-    return true;
-
+    return CONF_OK;
 }
 
-void Config::insertOrAppend(unordered_map<string, string> &optErr, string key, stringstream &value) {
+/** \brief Processes compression option.
+ *
+ *  Parses the compression option from 'source 'and writes it to comp.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param comp target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procCompression(vector<string> source, uint8_t &comp) {
 
-    auto it = optErr.find(key);
-    if (it==optErr.end())
-        optErr.insert(make_pair(key, value.str()));
-    else {
-        value << it->second;
-        it->second = value.str();
-    }
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
 
+    // Convert compression string to integer.
+    int64_t value=0;
+    if (!toInteger(source[1], 100, 1, value))
+        return CONF_ERR_INVALID;
+
+    // Set new value.
+    comp = value;
+
+    return CONF_OK;
 }
 
-void Config::printTermNote(stringstream &stream) {
+/** \brief Processes accelerometer options.
+ *
+ *  Parses the accelerometer options from 'source 'and writes it to acc.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param acc target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procAcc(vector<string> source, i2cDev &acc) {
 
-    stream << COMMENT << " .----------------------------------- Terminal settings -----------------------------------.\n";
-    stream << COMMENT << " | General syntax for each defined terminal is 'terminal=<path>:<baud rate>:[pvsef]' where |\n";
-    stream << COMMENT << " |   <path>      = terminals path in file system (string),                                 |\n";
-    stream << COMMENT << " |   <baud rate> = terminals baud rate (integer),                                          |\n";
-    stream << COMMENT << " |   [sfpve]     = flags, whether or not to output [s]tatus messages, [f]ailures,          |\n";
-    stream << COMMENT << " |                 [p]osition, [v]elocity, [e]vents (characters).                          |\n";
-    stream << COMMENT << " '-----------------------------------------------------------------------------------------'\n";
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert address string to integer.
+    int64_t addr=0;
+    if (!toInteger(source[2], 127, 1, addr))
+        return CONF_ERR_INVALID;
+
+    // Set value.
+    toAbsPath(source[1], acc.path);
+    acc.addr=addr;
+
+    return CONF_OK;
 }
 
-void Config::printServNote(stringstream &stream) {
+/** \brief Processes accelerometer type option.
+ *
+ *  Parses the accelerometer option from 'source 'and writes it to accType.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param accType target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procAccType(vector<string> source, uint8_t &accType) {
 
-    stream << COMMENT << " .------------------------------------ Server settings ------------------------------------.\n";
-    stream << COMMENT << " | General Syntax is '<type>=<addr>:<port>:<iface>' where                                  |\n";
-    stream << COMMENT << " |   <type>  = server type, 'serv-rt' for realtime, 'serv-nonrt' for non-                  |\n";
-    stream << COMMENT << " |            realtime (string),                                                           |\n";
-    stream << COMMENT << " |   <addr>  = server address (string; domain name or ip address),                         |\n";
-    stream << COMMENT << " |   <port>  = server port (integer),                                                      |\n";
-    stream << COMMENT << " |   <iface> = network interface to use (string).                                          |\n";
-    stream << COMMENT << " '-----------------------------------------------------------------------------------------'\n";
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert key to lower case for comparison robustness.
+    transform(source[1].begin(), source[1].end(), source[1].begin(), ::tolower);
+
+    // Check if given type is known.
+    if (EQUALS(source[1], 0, ACC_MPU6050))
+        accType=T_MPU6050;
+    else
+        return CONF_ERR_INVALID;
+
+    return CONF_OK;
 }
 
-void Config::printCapsNote(stringstream &stream) {
+/** \brief Processes gps option.
+ *
+ *  Parses the gps option from 'source 'and writes it to prime.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param gps target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procGPS(vector<string> source, uartDev &gps) {
 
-    stream << COMMENT << " .-------------------------------- Image capture settings ---------------------------------.\n";
-    stream << COMMENT << " | General Syntax is 'capture=<inner>:<outer>:<primary>' where                             |\n";
-    stream << COMMENT << " |   <inner>   = index of the inner camera (integer),                                      |\n";
-    stream << COMMENT << " |   <outer>   = index of the outer camera (integer),                                      |\n";
-    stream << COMMENT << " |   <primary> = index of the primary camera (integer).                                    |\n";
-    stream << COMMENT << " '-----------------------------------------------------------------------------------------'\n";
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert address string to integer.
+    int64_t baud=0;
+    if (!toInteger(source[2], INT64_MAX, 1, baud))
+        return CONF_ERR_INVALID;
+
+    // Set value.
+    toAbsPath(source[1], gps.path);
+    gps.baud=baud;
+
+    return CONF_OK;
 }
 
-void Config::printGPSNote(stringstream &stream) {
+/** \brief Processes gps type option.
+ *
+ *  Parses the prime capture option from 'source 'and writes it to gpsType.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param gpsType target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procGPSType(vector<string> source, uint8_t &gpsType) {
 
-    stream << COMMENT << " .---------------------------------- GPS module settings ----------------------------------.\n";
-    stream << COMMENT << " | General Syntax is 'gps=<path>:<baud rate>:<type>' where                                 |\n";
-    stream << COMMENT << " |   <path>      = modules path in file system (string),                                   |\n";
-    stream << COMMENT << " |   <baud rate> = modules baud rate (integer),                                            |\n";
-    stream << COMMENT << " |   <type>      = module type (string; currently 'Adafruit' only).                        |\n";
-    stream << COMMENT << " '-----------------------------------------------------------------------------------------'\n";
+    // Check if number of tokens matches.
+    if (source.size() != 2)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert key to lower case for comparison robustness.
+    transform(source[1].begin(), source[1].end(), source[1].begin(), ::tolower);
+
+    // Check if given type is known.
+    if (EQUALS(source[1], 0, GPS_ADAFRUIT))
+        gpsType=T_ADAFRUIT;
+    else
+        return CONF_ERR_INVALID;
+
+    return CONF_OK;
 }
 
-void Config::printAccNote(stringstream &stream) {
+/** \brief Processes obd option.
+ *
+ *  Parses the obd option from 'source 'and writes it to obd.
+ *  Returns status indicator.
+ *
+ *  \param source Vector containing the option key-value tuple.
+ *  \param obd target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t Config::procOBD(vector<string> source, uartDev &obd) {
 
-    stream << COMMENT << " .------------------------------ Acceleration module settings -----------------------------.\n";
-    stream << COMMENT << " | General Syntax is 'gps=<path>:<address>:<type>' where                                   |\n";
-    stream << COMMENT << " |   <path>      = modules path in file system (string),                                   |\n";
-    stream << COMMENT << " |   <address>   = device address on i2c bus (integer; decimal),                           |\n";
-    stream << COMMENT << " |   <type>      = module type (string; currently 'MPU6050' only).                         |\n";
-    stream << COMMENT << " '-----------------------------------------------------------------------------------------'\n";
+    // Check if number of tokens matches.
+    if (source.size() != 3)
+        return CONF_ERR_COUNT_MISMATCH;
+
+    // Convert address string to integer.
+    int64_t baud=0;
+    if (!toInteger(source[2], INT64_MAX, 1, baud))
+        return CONF_ERR_INVALID;
+
+    // Set value.
+    toAbsPath(source[1], obd.path);
+    obd.baud=baud;
+
+    return CONF_OK;
 }
-

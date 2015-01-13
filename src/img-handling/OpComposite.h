@@ -8,7 +8,12 @@
 #ifndef OPCOMPOSITE_H_
 #define OPCOMPOSITE_H_
 
-#include "Container.h"
+typedef enum {
+    COMP_OK,
+    COMP_INVALID_REFERENCE,
+    COMP_OUT_OF_BOUNDS
+}opReturns;
+
 #include "ImgOperator.h"
 
 #include <vector>

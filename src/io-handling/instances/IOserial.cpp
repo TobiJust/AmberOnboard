@@ -1,14 +1,22 @@
-/*
- * IOTerminal.cpp
+/** \brief      Concrete class for serial ports.
  *
- *  Created on: 19.12.2014
- *      Author: Daniel Wagenknecht
+ * \details     Concrete class, handling a serial port in file system and offering access to it.
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-19
+ * \class       IOserial
  */
 
 #include "IOserial.h"
 
 uint8_t IOserial::cmpBlock[] = {0};
 
+/** \brief Constructor.
+ *
+ *  Constructor of IOserial instances, using 'path' as file path and 'baud' as baud rate.
+ *
+ *  \param path Path to serial port.
+ *  \param baud Baud rate to use.
+ */
 IOserial::IOserial(string path, uint32_t baud) {
 
     this->file=NULL;
@@ -18,12 +26,29 @@ IOserial::IOserial(string path, uint32_t baud) {
     memset(&this->usedConfig,0,sizeof(this->usedConfig));
 }
 
+/** \brief Destructor.
+ *
+ *  Destructor of IOserial instances.
+ *  Resets port settings and closes corresponding descriptor.
+ */
 IOserial::~IOserial() {
 
     this->reset();
     this->close();
 }
 
+/** \brief Open serial port.
+ *
+ *  Opens the serial port in mode 'type'. If 'force' is true and the port is alread open, a reopen is forced.
+ *  Type must be one of:
+ *      OPEN_W = for writing
+ *      Open_R = OPEN_A = for appending
+ *  Returns status indicator.
+ *
+ *  \param type Mode of opening.
+ *  \param force flag (true for forcing reopen).
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::open(uint8_t type, bool force) {
 
     // File already open.
@@ -58,18 +83,30 @@ uint8_t IOserial::open(uint8_t type, bool force) {
     if (!status)
         this->setActive(true);
 
-    // TODO: usleep!
     usleep(100);
 
     return status;
 }
 
+/** \brief Checks if port is open.
+ *
+ *  Returns whether the specified port is already opened by this instance or not.
+ *
+ *  \return true if port is open, false otherwise.
+ */
 bool IOserial::isOpen() {
 
     // File structure does not point to NULL and has a valid file descriptor.
     return ( this->file != NULL && fileno(this->file) > 0);
 }
 
+/** \brief Sets up serial port.
+ *
+ *  Sets up serial port for usage.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::setup() {
 
 
@@ -98,8 +135,18 @@ uint8_t IOserial::setup() {
     return IO_OK;
 }
 
+/** \brief Sets baud rate of the port.
+ *
+ *  Sets the baud rate used for this port to 'baud'.
+ *  If the port is already open, the changes are also applied directly to the port.
+ *  Returns status indicator.
+ *
+ *  \param baud The baud rate of this serial port.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::setBaud(uint32_t baud) {
 
+    // Convert baud rate to corresponding macro.
     switch (baud) {
     case 50:        this->baud=B50;     break;
     case 75:        this->baud=B75;     break;
@@ -129,12 +176,19 @@ uint8_t IOserial::setBaud(uint32_t baud) {
     // Set up port.
     if (this->isOpen())
         status = this->setup();
-
+    
     return status;
 }
 
+/** \brief Getter for baud rate.
+ *
+ *  Returns the baud rate currently used for serial communication.
+ *
+ *  \return Current baud rate.
+ */
 uint32_t IOserial::getBaud() {
 
+    // Get current baud rate as integer.
     switch (this->baud) {
     case B50:       return 50;
     case B75:       return 75;
@@ -161,10 +215,17 @@ uint32_t IOserial::getBaud() {
     return 0;
 }
 
+/** \brief Restores serial port settings.
+ *
+ *  Resets serial port settings to origin values.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::reset() {
 
     // check if backup configuration is initialized.
-    if (memcmp(&this->backupConfig, IOserial::cmpBlock, sizeof (termios))) {
+    if (!memcmp(&this->backupConfig, IOserial::cmpBlock, sizeof (termios))) {
 
         // Apply old settings.
         if (tcsetattr(fileno(this->file), TCSANOW, &this->backupConfig))
@@ -175,6 +236,13 @@ uint8_t IOserial::reset() {
     return IO_OK;
 }
 
+/** \brief Closes serial port.
+ *
+ *  Closes the serial port
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::close() {
 
     // File already closed.
@@ -203,6 +271,14 @@ uint8_t IOserial::close() {
     return IO_OK;
 }
 
+/** \brief Read byte.
+ *
+ *  Reads a single byte from serial port and returns it.
+ *  If read fails, the read process gets repeated until either a new byte arrives
+ *  or this instance is set to inactive.
+ *
+ *  \return Next character in file.
+ */
 uint8_t IOserial::getChar() {
 
     uint8_t result=EOF;
@@ -211,12 +287,20 @@ uint8_t IOserial::getChar() {
 
         // Pause for half baud cycle.
         usleep(1000000 / (2*this->getBaud()));
-
+        
     // Return next character.
     return result;
 
 }
 
+/** \brief Writes string to serial port.
+ *
+ *  Writes all bytes of 'output' to the serial port.
+ *  Waits until all bytes written are actually sent to device.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOserial::putString(string &output) {
 
     if (fputs(output.c_str(), this->file)==EOF)
@@ -228,25 +312,3 @@ uint8_t IOserial::putString(string &output) {
 
     return IO_OK;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

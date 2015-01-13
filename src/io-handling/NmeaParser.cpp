@@ -1,18 +1,25 @@
-/*
- * NmeaParser.cpp
+/** \brief      Helper class for parsing NMEA data.
  *
- *  Created on: 21.12.2014
- *      Author: Daniel Wagenknecht
+ * \details     Parses NMEA data.
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-21
+ * \class       MPU6050
  */
 
 #include "NmeaParser.h"
 
-#include <iostream>
-
 NmeaParser::NmeaParser() { }
-
 NmeaParser::~NmeaParser() { }
 
+/** \brief Parse NMEA output.
+ *
+ *  Parses GPGGA sentence 'source' and writes results into 'dataset'.
+ *  Returns status indicator.
+ *
+ *  \param source Sentence to parse.
+ *  \param dataset target to write to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t NmeaParser::parseGGA(string source, gga &dataset) {
 
     if (source.compare(0, 6, "$GPGGA"))
@@ -40,20 +47,17 @@ uint8_t NmeaParser::parseGGA(string source, gga &dataset) {
 
     dataset.dgpsRef  = token[token.size()-2];
 
-    cerr << "UTC:   " << dataset.utc << endl;
-    cerr << "Lat.:  " << dataset.latVal << endl;
-    cerr << "Long.: " << dataset.longVal << endl;
-    cerr << "Qual.: " << dataset.quality << endl;
-    cerr << "Sat.:  " << dataset.satCnt << endl;
-    cerr << "HGOP.: " << dataset.hdop << endl;
-    cerr << "hght.: " << dataset.height << endl;
-    cerr << "sep.:  " << dataset.sepVal << endl;
-    cerr << "d-age: " << dataset.dgpsAge << endl;
-    cerr << "d-ref: " << dataset.dgpsRef << endl;
-
     return PARSE_OK;
 }
 
+/** \brief Helper method for tokenizing.
+ *
+ *  Tokenizes string 'source' by delimiter 'delim' and writes all tokens to 'target'
+ *
+ *  \param source Source string.
+ *  \param target Target vector.
+ *  \param delim Delimiter for tokenizing.
+ */
 void NmeaParser::tokenize(string source, vector<string> &target, char delim) {
 
     istringstream stream(source);

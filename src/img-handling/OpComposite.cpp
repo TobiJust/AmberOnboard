@@ -1,34 +1,73 @@
-/*
- * OpComposite.cpp
+/** \brief      Class implementing the composite pattern for image operators.
  *
- *  Created on: 28.11.2014
- *      Author: Daniel Wagenknecht
+ * \details     Implements composite pattern to combine different image operators.
+ * \author      Daniel Wagenknecht
+ * \version     2014-11-28
+ * \class       OpComposite
  */
 
 #include "OpComposite.h"
 
+/** \brief Constructor.
+ *
+ *  Constructor of OpComposite instances, calling parent in initializer list with operator type 'type'.
+ *
+ *  \param type The operator type.
+ */
 OpComposite::OpComposite(uint8_t type) : ImgOperator(type, 1) {}
 
+/** \brief Destructor.
+ *
+ *  Destructor of OpComposite instances.
+ */
 OpComposite::~OpComposite() { }
 
+/** \brief Connect result and parameter.
+ *
+ *  Connects the result values identified by 'resultName' with the parameter identified by 'paramName'.
+ *  This way, results of one operator in the composite implementation can be input for a
+ *  successor one.
+ *
+ *  \param resultName Name of the result, which gets connected to a parameter.
+ *  \param paramName Name of the parameter, which the result value gets connected to.
+ */
 void OpComposite::connect(string resultName, string paramName) {
 
+    // Find resultName occurrence.
     auto connIt = this->connections.find(resultName);
 
+    // Does not exist, create it
     if(connIt == this->connections.end())
         this->connections.insert(make_pair(resultName, paramName));
+
+    // Exists, set new value.
     else
         connIt->second = paramName;
 
 }
 
+/**
+ * Not needed directly.
+ */
 void OpComposite::createCaptures(uint8_t captureCount) { }
 
+/** \brief Sets option.
+ *
+ *  Tries to find a composite leaf which the option 'val' as identifier 'name'
+ *  could be applied to.
+ *  Returns status indicator.
+ *
+ *  \param name Name of the option to set.
+ *  \param val The actual option which gets set.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::setValue(string name, const shared_ptr<Value> &val) {
 
     uint8_t result=0;
 
-     for (auto leafIt : this->imageOperators) {
+    // Iterate operators.
+    for (auto leafIt : this->imageOperators) {
 
         // Try setting value.
         uint8_t tmpResult = leafIt->setValue(name,val);
@@ -43,6 +82,17 @@ uint8_t OpComposite::setValue(string name, const shared_ptr<Value> &val) {
     return result;
 }
 
+/** \brief Gets option.
+ *
+ *  Iterates all leafs to find the option specified by 'name' and writes it to 'val',
+ *  if existing.
+ *  Returns status indicator.
+ *
+ *  \param name Name of the option to get.
+ *  \param val The target which gets set.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::getValue(string name, shared_ptr<Value> &val) {
 
     uint8_t result=0;
@@ -60,6 +110,12 @@ uint8_t OpComposite::getValue(string name, shared_ptr<Value> &val) {
     return ERR_NO_SUCH_KEY;
 }
 
+/** \brief Check if operator is initialized.
+ *
+ *  Iterates all leafs to check if they are initialized.
+ *
+ *  \return true, if all leafs are initialized, false otherwise.
+ */
 bool OpComposite::initialized() {
 
     for (auto leafIt : this->imageOperators) {
@@ -72,6 +128,12 @@ bool OpComposite::initialized() {
     return true;
 }
 
+/** \brief Get capture count.
+ *
+ *  Iterates all leafs and determines the highest number of captures needed.
+ *
+ *  \return The number of captures necessary for this composite operator.
+ */
 uint8_t OpComposite::getCaptureCount() {
 
     uint8_t result = 0;
@@ -86,9 +148,14 @@ uint8_t OpComposite::getCaptureCount() {
     return result;
 }
 
+/** \brief Process operations.
+ *
+ *  Iterates over operators and processes their image operations and writes results into 'results'.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::process(unordered_map<string,shared_ptr<Value>> &results) {
-
-    // cerr << "OpComposite: got called" << endl;
 
     uint8_t status = 0;
 
@@ -114,15 +181,6 @@ uint8_t OpComposite::process(unordered_map<string,shared_ptr<Value>> &results) {
 
                 auto resIt = tmp.find(connIt.first);
                 shared_ptr<Value> dasdsadsa = (resIt->second);
-                // cerr << "OpComposite: setting " << connIt.first << " to " << dasdsadsa << endl;
-/*
-                cv::imshow("OpComposite", *(dynamic_pointer_cast<ValMat>(resIt->second)->getValue())); //display road image
-                if (cv::waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
-                {
-                    cout << "esc key is pressed by user" << endl;
-                    throw 20;
-                }
-*/
                 if(resIt != tmp.end())
                     (*(leafIt+1))->setValue(connIt.second, resIt->second);
             }
@@ -137,6 +195,14 @@ uint8_t OpComposite::process(unordered_map<string,shared_ptr<Value>> &results) {
 
 }
 
+/** \brief Append image operator.
+ *
+ *  Appends image operator 'op' as leaf to composite.
+ *  Returns status indicator.
+ *
+ *  \param op Operator to append.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::op_append(shared_ptr<ImgOperator> &op) {
 
     // Last of the 256 possible indices is reserved.
@@ -153,6 +219,14 @@ uint8_t OpComposite::op_append(shared_ptr<ImgOperator> &op) {
     return COMP_OUT_OF_BOUNDS;
 }
 
+/** \brief Delete image operator.
+ *
+ *  Deletes image operator 'op' from composite.
+ *  Returns status indicator.
+ *
+ *  \param op Operator to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::op_delete(shared_ptr<ImgOperator> &op) {
 
     // Pointer must not point to NULL.
@@ -176,6 +250,14 @@ uint8_t OpComposite::op_delete(shared_ptr<ImgOperator> &op) {
     return COMP_INVALID_REFERENCE;
 }
 
+/** \brief Delete image operator.
+ *
+ *  Deletes image operator at index 'index' from composite.
+ *  Returns status indicator.
+ *
+ *  \param index Index of the operator to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::op_delete(uint8_t index) {
 
     // Index in list bounds.
@@ -189,26 +271,43 @@ uint8_t OpComposite::op_delete(uint8_t index) {
     return COMP_OUT_OF_BOUNDS;
 }
 
+/** \brief Clear image operator list.
+ *
+ *  Deletes all image operators from composite.
+ */
 void OpComposite::op_clear() {
 
     // Clear complete list.
     this->imageOperators.clear();
 }
 
+/** \brief Swaps image operators indices.
+ *
+ *  Swaps image operator at index 'index1' with the one at 'index2'.
+ *  Returns status indicator.
+ *
+ *  \param index1 Index of the first operator.
+ *  \param index2 Index of the second operator.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpComposite::op_swap(uint8_t index1, uint8_t index2) {
 
     // Indices in list bounds.
     if (index1 < this->imageOperators.size() && index2 < this->imageOperators.size()) {
 
-        shared_ptr<ImgOperator> ptr1 = this->imageOperators[index1];
-        shared_ptr<ImgOperator> ptr2 = this->imageOperators[index2];
-        ptr1.swap(ptr2);
-
+        this->imageOperators[index1].swap(this->imageOperators[index2]);
         return COMP_OK;
     }
     return COMP_OUT_OF_BOUNDS;
 }
 
+/** \brief Find first operator of given type.
+ *
+ *  Finds the first operator of type 'opType' and returns its index, if existing.
+ *
+ *  \param opType Operator type to search for.
+ *  \return Index of the operator.
+ */
 uint8_t OpComposite::op_firstIndexOf(uint8_t opType) {
 
     // Get iterator for operator instances.
@@ -227,31 +326,3 @@ uint8_t OpComposite::op_firstIndexOf(uint8_t opType) {
     // Not found.
     return 0xFF;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

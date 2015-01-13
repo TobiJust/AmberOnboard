@@ -25,8 +25,6 @@ typedef enum {
 
 class ModuleImgProcessing : public Module {
 public:
- //    static    CamCapture* cam;
-
     ModuleImgProcessing();
     virtual ~ModuleImgProcessing();
 

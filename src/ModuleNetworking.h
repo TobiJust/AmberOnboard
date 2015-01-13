@@ -31,6 +31,7 @@ public:
     virtual ~ModuleNetworking();
 
     uint8_t com_append(shared_ptr<NetworkCommunicator> executor);
+    void com_delete(shared_ptr<NetworkCommunicator> com);
     void com_clear();
 
 protected:

@@ -1,14 +1,60 @@
-/*
- * I2cBus.cpp
+// I2Cdev library collection - MPU6050 I2C device class
+// Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
+// 8/24/2011 by Jeff Rowberg <jeff@rowberg.net>
+// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
+//
+// Changelog:
+//     ... - ongoing debug release
+
+// NOTE: THIS IS ONLY A PARIAL RELEASE. THIS DEVICE CLASS IS CURRENTLY UNDERGOING ACTIVE
+// DEVELOPMENT AND IS STILL MISSING SOME IMPORTANT FEATURES. PLEASE KEEP THIS IN MIND IF
+// YOU DECIDE TO USE THIS PARTICULAR CODE FOR ANYTHING.
+
+/* ============================================
+I2Cdev device library code is placed under the MIT license
+Copyright (c) 2012 Jeff Rowberg
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+*/
+
+/** \brief      General class for i2c access.
  *
- *  Created on: 22.12.2014
- *      Author: Daniel Wagenknecht
+ * \details     This class represents all i2c busses and offers methods for access.
+ *              Original by Jeff Rowberg, modified by Daniel Wagenknecht
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-22
+ * \class       IOi2cBus
  */
 
 #include "IOi2cBus.h"
 
 unordered_map<string, shared_ptr<IOi2cBus>> IOi2cBus::i2cDevices;
 
+/** \brief Constructor.
+ *
+ *  Constructor of IOi2cBus instances, using 'path' as bus path.
+ *  The constructor is private to avoid concurrent read / write operations on bus
+ *  by letting the class manage access.
+ *
+ *  \param path Path to device.
+ */
 IOi2cBus::IOi2cBus(string path) {
 
     this->busMutex.lock();
@@ -19,8 +65,19 @@ IOi2cBus::IOi2cBus(string path) {
     this->busMutex.unlock();
 }
 
+/** \brief Destructor.
+ *
+ *  Destructor of IOi2cBus instances.
+ */
 IOi2cBus::~IOi2cBus() { }
 
+/** \brief Getter method for bus instances.
+ *
+ *  Manages bus instance creation to avoid concurrent access.
+ *
+ *  \param path Path to device.
+ *  \return IOi2cBus instance.
+ */
 shared_ptr<IOi2cBus> IOi2cBus::getInstance(string path) {
 
     // Bus instance.
@@ -43,14 +100,32 @@ shared_ptr<IOi2cBus> IOi2cBus::getInstance(string path) {
     return result;
 }
 
+/** \brief Opens bus.
+ *
+ *  Opens the bus. If 'force' is true, the bus gets fully released before reopening it.
+ *  Returns status indicator.
+ *
+ *  \param type Ignored
+ *  \param force whether to reopen the bus or not.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOi2cBus::open(uint8_t type, bool force) {
     return request(force);
 }
 
+/** \brief Requests a bus opening.
+ *
+ *  Requests a bus opening. If 'force' is true, the bus gets fully released before reopening it.
+ *  If 'lock' is true, the bus access is thread safe.
+ *  Returns status indicator.
+ *
+ *  \param force Whether to reopen the bus or not.
+ *  \param lock Whether to open thread safe or not
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOi2cBus::request(bool force, bool lock) {
 
-    if ( lock )
-        this->busMutex.lock();
+    if ( lock ) this->busMutex.lock();
 
     // Bus already open.
     if (this->isOpen()) {
@@ -68,33 +143,61 @@ uint8_t IOi2cBus::request(bool force, bool lock) {
 
         this->fileDesc = -1;
 
-        if ( lock )
-            this->busMutex.unlock();
-
+        if ( lock ) this->busMutex.unlock();
         return IO_ERR_OPEN;
     }
 
-    if ( lock )
-        this->busMutex.unlock();
+    if ( lock ) this->busMutex.unlock();
+        
+    this->setActive(true);
 
     return IO_OK;
 }
 
+/** \brief Checks if bus is open.
+ *
+ *  Returns whether the specified bus is already opened by this instance or not.
+ *
+ *  \return true if bus is open, false otherwise.
+ */
 bool IOi2cBus::isOpen() {
     return this->fileDesc != -1 && fcntl(this->fileDesc, F_GETFL) >= 0 && errno != EBADF;
 }
 
+/** \brief Bus setup.
+ *
+ *  Does not affect i2c devices.
+ */
 uint8_t IOi2cBus::setup() { return IO_OK; }
+
+
+/** \brief Bus reset.
+ *
+ *  Does not affect i2c devices.
+ */
 uint8_t IOi2cBus::reset() { return IO_OK; }
 
+/** \brief Close bus.
+ *
+ *  Closes the bus by calling release method.
+ *  Returns status indicator
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOi2cBus::close() {
     return release();
 }
 
+/** \brief Release bus.
+ *
+ *  Releases the bus. If 'lock' is true, the bus access is thread safe.
+ *  Returns status indicator
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOi2cBus::release(bool lock) {
 
-    if ( lock )
-        this->busMutex.lock();
+    if ( lock ) this->busMutex.lock();
 
     // Bus already open.
     if( this->isOpen() ) {
@@ -111,12 +214,18 @@ uint8_t IOi2cBus::release(bool lock) {
         }
     }
 
-    if ( lock )
-        this->busMutex.unlock();
+    if ( lock ) this->busMutex.unlock();
 
     return IO_OK;
 }
 
+/** \brief Read byte.
+ *
+ *  Reads a single byte from bus and returns it.
+ *  Note: I2C requires a specific protocol to get applied before any answer is coming from device.
+ *
+ *  \return Next character from bus.
+ */
 uint8_t IOi2cBus::getChar() {
 
     uint8_t result=EOF;
@@ -128,6 +237,14 @@ uint8_t IOi2cBus::getChar() {
 
 }
 
+/** \brief Writes string to bus.
+ *
+ *  Writes all bytes of 'output' to the bus.
+ *  Note: I2C requires a specific protocol to get applied for the device to get the output.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t IOi2cBus::putString(string &output) {
 
     // Write output to i2c bus.

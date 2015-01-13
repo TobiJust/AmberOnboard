@@ -14,9 +14,6 @@
 #include <vector>
 #include <memory>
 
-
-#include <mutex>
-
 using namespace std;
 
 
@@ -40,8 +37,6 @@ protected:
     bool initialized;
 private:
     int resType;
-    static int count;
-    static mutex countLock;
 };
 
 // Concrete ImgResult child for double values.

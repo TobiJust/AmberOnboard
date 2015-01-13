@@ -14,7 +14,6 @@
 #include <unordered_map>
 
 #include <memory>
-#include <mutex>
 
 typedef enum {
     OK,
@@ -38,8 +37,6 @@ public:
     uint8_t getValueCount();
 protected:
     unordered_map<string,shared_ptr<Value>> config;
-    static int count;
-    static mutex countLock;
 };
 
 #endif /* VALCONTAINER_H_ */

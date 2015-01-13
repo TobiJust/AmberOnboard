@@ -10,9 +10,12 @@
 
 #include "IOparent.h"
 
+#include <fstream>
 #include <string>
 
 #include <cstdio>
+
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -21,6 +24,9 @@ public:
 
     IOfile(string path);
     virtual ~IOfile();
+
+    bool exists();
+    string getPath();
 
     // Pre-usage setup.
     virtual uint8_t open(uint8_t type, bool force=false);

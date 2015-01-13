@@ -1,8 +1,46 @@
-/*
- * MPU6050.h
+// I2Cdev library collection - MPU6050 I2C device class
+// Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
+// 8/24/2011 by Jeff Rowberg <jeff@rowberg.net>
+// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
+//
+// Changelog:
+//     ... - ongoing debug release
+
+// NOTE: THIS IS ONLY A PARIAL RELEASE. THIS DEVICE CLASS IS CURRENTLY UNDERGOING ACTIVE
+// DEVELOPMENT AND IS STILL MISSING SOME IMPORTANT FEATURES. PLEASE KEEP THIS IN MIND IF
+// YOU DECIDE TO USE THIS PARTICULAR CODE FOR ANYTHING.
+
+/* ============================================
+I2Cdev device library code is placed under the MIT license
+Copyright (c) 2012 Jeff Rowberg
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+*/
+
+/** \brief      Device class for MPU6050 imu.
  *
- *  Created on: 23.12.2014
- *      Author: Daniel Wagenknecht
+ * \details     Concrete device class for MPU6050 imu.
+ *              Original by Jeff Rowberg, modified by Daniel Wagenknecht
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-23
+ * \class       MPU6050
  */
 
 #ifndef MPU6050_H_
@@ -11,8 +49,9 @@
 #define REFRESH_RATE 50
 
 #include "instances/IOi2cBus.h"
-#include "../Child.h"
+#include "Device.h"
 
+#include <mutex>
 #include <memory>
 #include <string>
 
@@ -378,7 +417,7 @@
 
 using namespace std;
 
-class MPU6050 : public Child {
+class MPU6050 : public Device {
 public:
 
     MPU6050(uint8_t address=MPU6050_DEFAULT_ADDRESS, string path="/dev/i2c-4");
@@ -387,6 +426,8 @@ public:
     bool testConnection();
 
     virtual int run();
+    virtual void getValues(unordered_map<string, string> &values);
+    // void getData(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
 
     void setAddr(uint8_t devAddr);
     uint8_t getAddr();
@@ -436,7 +477,18 @@ private:
     uint8_t devAddr;
     uint8_t buffer[14];
 
+    /*
+    // Values for each of the sensors axes.
+    int16_t ax, ay, az;
+    int16_t gx, gy, gz;
+     */
+
+    // Last known data.
+    unordered_map<string, string> values;
+
     shared_ptr<IOi2cBus> bus;
+
+    mutex rw_mutex;
 
 };
 

@@ -9,8 +9,10 @@
 #define GPSADAFRUIT_H_
 
 #include "instances/IOserial.h"
+#include "Device.h"
 #include "NmeaParser.h"
 
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -42,11 +44,14 @@ typedef enum {
 
 using namespace std;
 
-class GpsAdafruit {
+class GpsAdafruit : public Device {
 public:
 
     GpsAdafruit(string path, uint32_t baud);
     virtual ~GpsAdafruit();
+
+    virtual int run();
+    virtual void getValues(unordered_map<string, string> &values);
 
     uint8_t initialize();
 
@@ -68,7 +73,14 @@ public:
 
 private:
 
+    // Serial port access.
     IOserial device;
+
+    // Last known data.
+    unordered_map<string, string> values;
+
+    // Data access mutex.
+    mutex rw_mutex;
 
 };
 

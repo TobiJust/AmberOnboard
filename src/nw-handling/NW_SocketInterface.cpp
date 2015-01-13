@@ -1,16 +1,23 @@
-/*
- * NW_SocketInterface.cpp
+/** \brief      Socket interface.
  *
- *  Created on: 21.11.2014
- *      Author: Daniel Wagenknecht
+ * \details     This class handles a network socket connection to a server as client.
+ * \author      Daniel Wagenknecht
+ * \version     2015-11-21
+ * \class       NW_SocketInterface
  */
 
 #include "NW_SocketInterface.h"
 
-#include <iostream>
-#include <sys/time.h>
-#include <arpa/inet.h>
-
+/** \brief Constructor.
+ *
+ *  Constructor of FrameProcessor instances, initializing the needed fields.
+ *
+ *  \param ipFamily IP family to use (IPv4 / IPv6).
+ *  \param socketType Socket type (UDP / TCP).
+ *  \param address Target address (domain name or ip address).
+ *  \param port Target port.
+ *  \param iface Network interface in system.
+ */
 NW_SocketInterface::NW_SocketInterface(uint8_t ipFamily, uint8_t socketType, string address, string port, string iface) {
 
     this->socketDesc=-1;
@@ -21,58 +28,25 @@ NW_SocketInterface::NW_SocketInterface(uint8_t ipFamily, uint8_t socketType, str
     this->address       = address;
     this->port          = port;
     this->iface         = iface;
-
-    /*
-    // Create argument list.
-    createValue(ARG_IP_FAMILY, shared_ptr<ValInt>(new ValInt));
-    createValue(ARG_SOCK_TYPE, shared_ptr<ValInt>(new ValInt));
-    createValue(ARG_TARGET_ADDR, shared_ptr<ValString>(new ValString));
-    createValue(ARG_TARGET_PORT, shared_ptr<ValString>(new ValString));
-     */
-
 }
 
+/** \brief Destructor.
+ *
+ *  Destructor of NW_SocketInterface instances.
+ */
 NW_SocketInterface::~NW_SocketInterface() {
     freeaddrinfo(host_info_list);
     close(this->socketDesc);
 }
 
+/** \brief Initializes the socket interface.
+ *
+ *  Initializes the socket interface, using the values passed to constructor.
+ *  Returns a status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t NW_SocketInterface::initialize() {
-
-    // if (!this->active && this->initialized()) {
-
-    /*
-        myfile.open ("dataset.txt");
-
-        cerr << "NW_SocketInterface: (re)initializing... (descriptor is " << socketDesc << ")"<< endl;
-
-        shared_ptr<Value> ipFam_Value;
-        uint8_t status = getValue(ARG_IP_FAMILY, ipFam_Value);
-        if( status != OK )
-            return NW_ERR_ARGUMENT; // An argument error occured.
-
-        shared_ptr<Value> sockType_Value;
-        status = getValue(ARG_SOCK_TYPE, sockType_Value);
-        if( status != OK )
-            return NW_ERR_ARGUMENT; // An argument error occured.
-
-        shared_ptr<Value> addr_Value;
-        status = getValue(ARG_TARGET_ADDR, addr_Value);
-        if( status != OK )
-            return NW_ERR_ARGUMENT; // An argument error occured.
-
-        shared_ptr<Value> port_Value;
-        status = getValue(ARG_TARGET_PORT, port_Value);
-        if( status != OK )
-            return NW_ERR_ARGUMENT; // An argument error occured.
-
-        // Get argument values.
-        uint8_t ipFam = (dynamic_pointer_cast<ValInt>(ipFam_Value))->getValue();
-        uint8_t sockType = (dynamic_pointer_cast<ValInt>(sockType_Value))->getValue();
-        string addr = (dynamic_pointer_cast<ValString>(addr_Value))->getValue();
-        string port = (dynamic_pointer_cast<ValString>(port_Value))->getValue();
-     */
-
 
     // Initialize socket setup variables.
     struct addrinfo host_info;
@@ -106,8 +80,6 @@ uint8_t NW_SocketInterface::initialize() {
     if(ioctl(this->socketDesc, SIOCGIFADDR, &ifr))
         return NW_ERR_IFACE;
 
-    // cerr << (struct sockaddr *)&ifr.ifr_addr << "=============================" << inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr)  << endl;
-
     // Bind socket to interface.
     if((bind(this->socketDesc, (struct sockaddr *)&ifr.ifr_addr, sizeof(sockaddr)))== -1)
         return NW_ERR_BIND;
@@ -117,127 +89,71 @@ uint8_t NW_SocketInterface::initialize() {
     if (this->socketDesc == -1)
         return NW_ERR_CONNECT;
 
-    // send(this->socketDesc, "Hello World", 11, 0);
-
     return NW_OK;
-
-    /*
-    } else if (!this->initialized())
-        return NW_ERR_ARGUMENT;
-     */
-
-    return NW_ERR_ALREADY_ACTIVE;
-
 }
 
+/** \brief Forwards packet to network interface.
+ *
+ *  Forwards 'packet' to network interface (actual send process)
+ *  Returns a status indicator.
+ *
+ *  \param packet The packet to send.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t NW_SocketInterface::forward(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet) {
 
+    // Initialize local variables.
     uint32_t bytesSent=0, lastSent=0;
+
+    // Iterate over packet and send its content to socket descriptor
     auto packetIt = packet->begin();
-
-    gettimeofday(&step1, 0);
-    uint32_t tmpBytesSent=0;
-
     while (packetIt != packet->end()) {
 
         bytesSent = 0;
         vector<uint8_t> *vector = &(**(packetIt++));
 
-
-
-        cerr << "[]...." << endl;
-
-        // myfile << "[SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS]";
-        // copy(vector->begin(), vector->end(), ostream_iterator<uint8_t>(myfile , ""));
-
-        // if (!count--)
-        //     myfile.close();
-
-
-
-
-
+        // Send while there are unsent bytes.
         while (bytesSent < vector->size()) {
             lastSent = send(this->socketDesc, &((*vector)[bytesSent]), vector->size()-bytesSent, 0);
-            // cerr << "NW_SocketInterface: bytes sent " << lastSent << "/";
-            if (lastSent < 1)
-                return NW_ERR_SEND;
+
+            // An error occurred
+            if (lastSent < 1) return NW_ERR_SEND;
+
+            // Set sent byte count.
             bytesSent+=lastSent;
-            //cerr << bytesSent << endl;
         }
-
-        tmpBytesSent+=bytesSent;
-
     }
-
-    cerr << "NW_SocketInterface: sent " << tmpBytesSent << " bytes" << endl;
-    gettimeofday(&step2, 0);
-    int distance = 1000000*(step2.tv_sec-step1.tv_sec)+(step2.tv_usec-step1.tv_usec);
-    // cerr << "\033[1;31mNW_SocketInterface\033[0m: Distance for sending " << tmpBytesSent << " bytes is \033[1;32m" << distance << "\033[0m" << endl;
-
     return NW_OK;
 
 }
 
-uint8_t NW_SocketInterface::backward(shared_ptr<deque<uint8_t>> packet) {
-
-
-    uint8_t temp=0;
-
-    // Send single byte and check send state. Return in case of error.
-    uint8_t bytesReceived = recv(this->socketDesc, &temp, 1, 0);
-
-    if (bytesReceived != 1)
-        return NW_ERR_SEND;
-
-    packet->push_back(temp);
-
-
-    return NW_OK;
-
-}
-
+/** \brief Backwards packet from network interface.
+ *
+ *  Backwards packet from network interface and writes it into 'packet',
+ *  beginning at 'begin' and reading until either no more data arrive or 'end' is reached.
+ *
+ *  \param packet The target container of receiving process.
+ *  \param begin The first position to write result to.
+ *  \param end The end of the received data
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t NW_SocketInterface::backward(shared_ptr<vector<uint8_t>> packet,
         uint8_t *&begin,
         uint8_t *&end) {
 
-    gettimeofday(&step1, 0);
-    uint32_t tmpBytesSent=0;
-
+    // Check if there is place left in packet.
     if (end-(&(*packet)[0]) >= (uint32_t)packet->size())
         return NW_ERR_OUT_OF_BOUNDS;
 
+    // Calculate new length to read and receive from socket descriptor.
     uint32_t length = (&(*packet)[packet->size()])-end;
     int32_t bytesReceived = recv(this->socketDesc, end, length, 0);
 
-    tmpBytesSent+=bytesReceived;
+    // An error occurred
+    if (bytesReceived < 1) return NW_ERR_RECV;
 
-    if (bytesReceived < 0)
-        exit(-1);
-
-    if (!count--)
-        myfile.close();
-
-    for (int i=0; i<bytesReceived; i++) {
-
-        cerr << "NW_SocketInterface: next= " << (uint32_t)*(begin+i) << "(" << *(begin+i) << ")" << endl;
-
-    }
-
-    /*
-    myfile << "[RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR]";
-    copy(begin, begin+bytesReceived, ostream_iterator<uint8_t>(myfile , ""));
-     */
-
-    if (bytesReceived < 1)
-        return NW_ERR_SEND;
+    // Set new end.
     end=begin+bytesReceived;
-
-    gettimeofday(&step2, 0);
-    int distance = 1000000*(step2.tv_sec-step1.tv_sec)+(step2.tv_usec-step1.tv_usec);
-    // cerr << "\033[1;31mNW_SocketInterface\033[0m: Distance for receiving " << tmpBytesSent << " bytes is \033[1;32m" << distance << "\033[0m" << endl;
-
-
 
     return NW_OK;
 

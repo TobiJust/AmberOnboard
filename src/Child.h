@@ -41,6 +41,8 @@ public:
     void out_push(shared_ptr<Message_M2C> field);
     uint8_t out_count();
     void out_wait();
+    void out_wait(uint32_t useconds);
+
 private:
 
     // Child observer section.

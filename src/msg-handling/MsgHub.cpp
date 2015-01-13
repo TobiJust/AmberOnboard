@@ -1,18 +1,27 @@
-/*
- * MsgHub.cpp
+/** \brief      Message handling for inter-module communication.
  *
- *  Created on: 31.10.2014
- *      Author: Daniel Wagenknecht
+ * \details     This class handles the communication between modules. A Module instance could register for a certain
+ *              message id and gets notified as soon as there are pending message on the hub.
+ *              Implements mediator pattern, singleton and observable.
+ * \author      Daniel Wagenknecht
+ * \version     2014-10-31
+ * \class       MsgHub
  */
 
 #include "MsgHub.h"
 
-#include <iostream>
-
 MsgHub* MsgHub::instance = 0;
 
+/** \brief Constructor.
+ *
+ *  Default Constructor of MsgHub instances.
+ */
 MsgHub::MsgHub() { }
 
+/** \brief Destructor.
+ *
+ *  Destructor of MsgHub instances.
+ */
 MsgHub::~MsgHub() { }
 
 /** \brief Implements getInstance() of Singleton pattern.
@@ -29,6 +38,16 @@ MsgHub* MsgHub::getInstance() {
 
 }
 
+/** \brief Attaches observer to message type.
+ *
+ *  Attaches 'observer' to messages with id 'type'.
+ *  After that operation, the observers update method gets called, each time
+ *  a new message of this type lies on hub.
+ *  This method is thread safe.
+ *
+ *  \param observer The observer instance to attach.
+ *  \param type The message identifier to attach the observer to.
+ */
 void MsgHub::attachObserverToMsg(Observer* observer, int type) {
 
     mutex_MsgType_ObsList.lock();
@@ -68,6 +87,16 @@ void MsgHub::attachObserverToMsg(Observer* observer, int type) {
 
 }
 
+/** \brief Detaches observer from message type.
+ *
+ *  Detaches 'observer' from messages with id 'type'.
+ *  After that operation, the observers update method does not get called, each time
+ *  a new message of this type lies on hub.
+ *  This method is thread safe.
+ *
+ *  \param observer The observer instance to detach.
+ *  \param type The message identifier to detach the observer from.
+ */
 void MsgHub::detachObserverFromMsg(Observer* observer, int type) {
 
     mutex_MsgType_ObsList.lock();
@@ -86,9 +115,14 @@ void MsgHub::detachObserverFromMsg(Observer* observer, int type) {
 
 }
 
+/** \brief Notifies observers about new message.
+ *
+ *  Notifies all observers of message type 'type' that there are new messages pending
+ *  This method is thread safe.
+ *
+ *  \param type The type to notify the observers for.
+ */
 void MsgHub::notifyObservers(int type) {
-
-    cerr << "\033[1;31m MsgHub \033[0m: notifyObservers ("<<this<<")" << endl;
 
     mutex_MsgType_ObsList.lock();
 
@@ -111,16 +145,14 @@ void MsgHub::notifyObservers(int type) {
 
 }
 
-/** \brief Returns the oldest message for a module.
+/** \brief Returns the oldest message for observer.
  *
- *  Returns the oldest pending message of the module specified by moduleID.
+ *  Returns the oldest pending message for 'observer'.
  *
- *  \param moduleID The id of the module to look up message list for.
- *  \return Message of the module
+ *  \param observer The observer for which the message is pending.
+ *  \return Message for the observer.
  */
 shared_ptr<Message_M2M> MsgHub::getMsg(Observer* observer) {
-
-    cerr << "\033[1;31m MsgHub \033[0m: getting message ("<<this<<")" << endl;
 
     mutex_Obs_Mutex.lock();
 
@@ -165,27 +197,24 @@ shared_ptr<Message_M2M> MsgHub::getMsg(Observer* observer) {
 
                     // Erase message instance from list and memory.
                     map_Msg_ObsCount.erase(message);
+
+                    ((*countIt).second)--;
+
                 }
 
-                mutex_Msg_ObsCount.unlock();
-
-                ((*countIt).second)--;
-
                 // Unlock observers mutex.
+                mutex_Msg_ObsCount.unlock();
                 (*mutexIt).second->unlock();
 
                 // Return message instance.
                 return message;
-
             }
-
         }
 
         mutex_Obs_MsgList.unlock();
 
         // Unlock observers mutex.
         (*mutexIt).second->unlock();
-
     }
 
     mutex_Obs_Mutex.unlock();
@@ -194,9 +223,9 @@ shared_ptr<Message_M2M> MsgHub::getMsg(Observer* observer) {
     return NULL;
 }
 
-/** \brief Returns the number of messages left for a module.
+/** \brief Returns the number of messages left for observer.
  *
- *  Returns the number of pending messages in the queue of module 'moduleID'.
+ *  Returns the number of pending messages in the queue of observer 'observer'.
  *
  *  \param moduleID The id of the module to look up message list for.
  */
@@ -230,22 +259,21 @@ int MsgHub::getMsgCount(Observer* observer) {
 
         // Unlock observers mutex.
         (*mutexIt).second->unlock();
-
     }
 
     return result;
 }
 
-/** \brief Appends a new message to the list of a module.
+/** \brief Appends a new message to the hub.
  *
- *  Appends the message specified by 'message' to the end of the message queue of module 'moduleID'.
+ *  Appends the message specified by 'message' to the hub and notifies all
+ *  observers for this message type aout a new message.
  *
- *  \param moduleID The target modules id.
  *  \param message Pointer to the Message instance.
  */
 void MsgHub::appendMsg(shared_ptr<Message_M2M> message) {
 
-    cerr << "\033[1;31m MsgHub \033[0m: appending ("<<this<<")" << endl;
+    // cerr << "\033[1;31m MsgHub \033[0m: appending ("<<this<<")" << endl;
 
     // Get observers of message type.
     mutex_MsgType_ObsList.lock();

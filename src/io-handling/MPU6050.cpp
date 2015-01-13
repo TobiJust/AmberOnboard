@@ -1,10 +1,47 @@
-/*
- * MPU6050.cpp
- *
- *  Created on: 23.12.2014
- *      Author: Daniel Wagenknecht
- */
+// I2Cdev library collection - MPU6050 I2C device class
+// Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
+// 8/24/2011 by Jeff Rowberg <jeff@rowberg.net>
+// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
+//
+// Changelog:
+//     ... - ongoing debug release
 
+// NOTE: THIS IS ONLY A PARIAL RELEASE. THIS DEVICE CLASS IS CURRENTLY UNDERGOING ACTIVE
+// DEVELOPMENT AND IS STILL MISSING SOME IMPORTANT FEATURES. PLEASE KEEP THIS IN MIND IF
+// YOU DECIDE TO USE THIS PARTICULAR CODE FOR ANYTHING.
+
+/* ============================================
+I2Cdev device library code is placed under the MIT license
+Copyright (c) 2012 Jeff Rowberg
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+*/
+
+/** \brief      Device class for MPU6050 imu.
+ *
+ * \details     Concrete device class for MPU6050 imu.
+ *              Original by Jeff Rowberg, modified by Daniel Wagenknecht
+ * \author      Daniel Wagenknecht
+ * \version     2014-12-23
+ * \class       MPU6050
+ */
 #include "MPU6050.h"
 
 MPU6050::MPU6050(uint8_t devAddr, string path) {
@@ -16,14 +53,66 @@ MPU6050::MPU6050(uint8_t devAddr, string path) {
 MPU6050::~MPU6050() { }
 
 int MPU6050::run() {
-
+        
     // Run until terminate is called.
     while (this->bus->isActive() && !this->isTerminating()) {
 
-        // TODO: Read requests.
-    }
+        int16_t tmp_ax, tmp_ay, tmp_az;
+        int16_t tmp_gx, tmp_gy, tmp_gz;
 
+        getMotion6(&tmp_ax, &tmp_ay, &tmp_az, &tmp_gx, &tmp_gy, &tmp_gz);
+        
+        this->rw_mutex.lock();
+        this->addValue(this->values, ACC_X, to_string(tmp_ax));
+        this->addValue(this->values, ACC_Y, to_string(tmp_ay));
+        this->addValue(this->values, ACC_Z, to_string(tmp_az));
+        this->addValue(this->values, GYRO_X, to_string(tmp_gx));
+        this->addValue(this->values, GYRO_Y, to_string(tmp_gy));
+        this->addValue(this->values, GYRO_Z, to_string(tmp_gz));
+        this->rw_mutex.unlock();
+
+        usleep(10000);
+
+    }
+    
     return 0;
+}
+
+void MPU6050::getValues(unordered_map<string, string> &values) {
+
+    this->rw_mutex.lock();
+
+    // Add acc x, if existing.
+    auto it = this->values.find(ACC_X);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    // Add acc y, if existing.
+    it = this->values.find(ACC_Y);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    // Add acc z, if existing.
+    it = this->values.find(ACC_Z);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    // Add gyro x, if existing.
+    it = this->values.find(GYRO_X);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    // Add gyro y, if existing.
+    it = this->values.find(GYRO_Y);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    // Add gyro z, if existing.
+    it = this->values.find(GYRO_Z);
+    if (it != this->values.end())
+        this->addValue(values, it->first, it->second);
+
+    this->rw_mutex.unlock();
 }
 
 void MPU6050::setAddr(uint8_t devAddr) {
@@ -51,7 +140,7 @@ bool MPU6050::initialize() {
     setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
     setSleepEnabled(false); // thanks to Jack Elston for pointing this one out!
 
-    return this->testConnection();
+    return !this->testConnection();
 }
 
 /** Verify the I2C connection.

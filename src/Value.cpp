@@ -1,35 +1,19 @@
-/*
- * Value.cpp
+/** \brief      Container class for different data types.
  *
- *  Created on: 12.11.2014
- *      Author: Daniel Wagenknecht
+ * \details     Classes of this file encapsulate different data types in objects.
+ * \author      Daniel Wagenknecht
+ * \version     2014-11-12
+ * \class       Value, ValInt, ValDouble, ValString, ValVectorUchar
  */
 
 #include "Value.h"
 
-#include <iostream>
-
-
-int Value::count = 0;
-mutex Value::countLock;
-
 Value::Value(int resType, bool initialized) {
-    {
-        countLock.lock();
-        // cerr << "Value: count now " << ++count << " ( + created as type " << resType << " )" << endl;
-        countLock.unlock();
-    }
     this->resType=resType;
     this->initialized=initialized;
 }
 
-Value::~Value() {
-    {
-        countLock.lock();
-        // cerr << "Value: count now " << --count << " ( # deleted as type " << resType << " )" << endl;
-        countLock.unlock();
-    }
-}
+Value::~Value() { }
 
 int Value::getType() {
     return this->resType;

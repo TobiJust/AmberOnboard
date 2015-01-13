@@ -36,12 +36,12 @@ protected:
 
 class CamCapture : public ImgCapture {
 public:
-    CamCapture(uint8_t camIndex, uint8_t captureID);
+    CamCapture(uint8_t camIndex, uint8_t capID, uint8_t fps);
     virtual ~CamCapture();
     virtual shared_ptr<cv::Mat> getFrame();
     bool openCapture();
 protected:
-    uint8_t index;
+    uint8_t index, fps;
     shared_ptr<cv::VideoCapture> capture;
 };
 

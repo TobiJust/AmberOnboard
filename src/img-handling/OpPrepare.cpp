@@ -1,14 +1,17 @@
-/*
- * OpPrepare.cpp
+/** \brief      Operator for preparing images for video stream.
  *
- *  Created on: 20.11.2014
- *      Author: Askar Massalimov
+ * \details     Composite image operator for image preparation.
+ * \author      Daniel Wagenknecht
+ * \version     2014-11-20
+ * \class       OpPrepare
  */
 
 #include "OpPrepare.h"
 
-#include <iostream>
-
+/** \brief Constructor.
+ *
+ *  Constructor of OpPrepare instances.
+ */
 OpPrepare::OpPrepare() : OpComposite(OP_PREPARE) {
 
     shared_ptr<ImgOperator> encode(new OpEncodeJPEG);
@@ -23,6 +26,10 @@ OpPrepare::OpPrepare() : OpComposite(OP_PREPARE) {
 
 }
 
+/** \brief Destructor.
+ *
+ *  Destructor of OpPrepare instances.
+ */
 OpPrepare::~OpPrepare() {}
 
 

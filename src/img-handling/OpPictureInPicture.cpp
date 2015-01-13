@@ -1,30 +1,40 @@
-/*
- * OpPictureInPicture.cpp
+/** \brief      Image operator implementing a picture-in-picture function.
  *
- *  Created on: 20.11.2014
- *      Author: Askar Massalimov
+ * \details     Image operator implementing a picture in picture function.
+ * \author      Askar Massalimov
+ * \version     2014-11-20
+ * \class       OpPictureInPicture
  */
 
 #include "OpPictureInPicture.h"
 
-#include <signal.h>
-
+/** \brief Constructor.
+ *
+ *  Constructor of OpPictureInPicture instances.
+ */
 OpPictureInPicture::OpPictureInPicture() : ImgOperator(OP_PICTURE_IN_PICTURE, 2) {
 
     // Create argument list.
     createValue(ARG_SCALE, shared_ptr<ValInt>(new ValInt));
     createValue(ARG_POS_X, shared_ptr<ValInt>(new ValInt));
     createValue(ARG_POS_Y, shared_ptr<ValInt>(new ValInt));
-
 }
 
-OpPictureInPicture::~OpPictureInPicture() {
-    // TODO Auto-generated destructor stub
-}
+/** \brief Destructor.
+ *
+ *  Destructor of OpPictureInPicture instances.
+ */
+OpPictureInPicture::~OpPictureInPicture() { }
 
+/** \brief Process operation.
+ *
+ *  Writes the Mat object passed by capture ID 1 as picture-in-picture
+ *  to a copy of the Mat object passed by capture ID 0.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpPictureInPicture::process(unordered_map<string,shared_ptr<Value>> &results) {
-
-    // cerr << "OpPictureInPicture: got called" << endl;
 
     // Get source image argument.
     shared_ptr<Value> src_Val;
@@ -89,18 +99,6 @@ uint8_t OpPictureInPicture::process(unordered_map<string,shared_ptr<Value>> &res
     resized.copyTo(frame);
     shared_ptr<ValMat> resultVal(new ValMat(result));
     results.insert(make_pair(RES_PICTURE_IN_PICTURE, resultVal));
-
-    /*
-    cv::imshow("Result", *result); //display road image
-                if (cv::waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
-                {
-                    cout << "esc key is pressed by user" << endl;
-                    throw 20;
-                }
-    cerr << "OpPictureInPicture: Done" << endl;
-    cerr << "OpPictureInPicture: thumb size " << resized.cols << "x" << resized.rows << endl;
-    cerr << "OpPictureInPicture: frame size " << result->cols << "x" << result->rows << endl;
-     */
 
     return OK;
 

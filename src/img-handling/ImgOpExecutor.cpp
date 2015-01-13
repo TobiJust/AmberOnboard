@@ -1,35 +1,33 @@
-/*
- * ImgOpExecutor.cpp
+/** \brief      Class for executing image operations.
  *
- *  Created on: 18.11.2014
- *      Author: Daniel Wagenknecht
+ * \details     Class for executing operations on mat objects.
+ * \author      Daniel Wagenknecht
+ * \version     2014-11-18
+ * \class       ImgOpExecutor
  */
 
 #include "ImgOpExecutor.h"
 
-#include <unistd.h>
-
 ResultContainer::ResultContainer() {}
 ResultContainer::~ResultContainer() {}
 
-ImgOpExecutor::ImgOpExecutor() {
-
-    cerr << "\033[1;31m ImgOpExecutor \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
-}
+ImgOpExecutor::ImgOpExecutor() { }
 
 ImgOpExecutor::ImgOpExecutor(shared_ptr<ImgCapture> &capture) {
-
-    cerr << "\033[1;31m ImgOpExecutor \033[0m: created (\x1B[33m"<<this<<"\033[0m)" << endl;
-
     if (capture)
         this->imageCaptures.push_back(capture);
 }
 
-ImgOpExecutor::~ImgOpExecutor() {
+ImgOpExecutor::~ImgOpExecutor() { }
 
-    cerr << "\033[1;31m ImgOpExecutor \033[0m: deleted (\x1B[33m"<<this<<"\033[0m)" << endl;
-}
-
+/** \brief Append image operator.
+ *
+ *  Appends image operator 'op' to execution list.
+ *  Returns status indicator.
+ *
+ *  \param op Operator to append.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> op) {
 
     // Last of the 256 possible indices is reserved.
@@ -46,6 +44,14 @@ uint8_t ImgOpExecutor::op_append(shared_ptr<ImgOperator> op) {
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Delete image operator.
+ *
+ *  Deletes image operator 'op' from execution list.
+ *  Returns status indicator.
+ *
+ *  \param op Operator to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::op_delete(shared_ptr<ImgOperator> op) {
 
     // Pointer must not point to NULL.
@@ -69,6 +75,14 @@ uint8_t ImgOpExecutor::op_delete(shared_ptr<ImgOperator> op) {
     return EXEC_INVALID_REFERENCE;
 }
 
+/** \brief Delete image operator.
+ *
+ *  Deletes image operator at index 'index' from execution list.
+ *  Returns status indicator.
+ *
+ *  \param index Index of the operator to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::op_delete(uint8_t index) {
 
     // Index in list bounds.
@@ -82,12 +96,25 @@ uint8_t ImgOpExecutor::op_delete(uint8_t index) {
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Clear image operator list.
+ *
+ *  Deletes all image operators from execution list.
+ */
 void ImgOpExecutor::op_clear() {
 
     // Clear complete list.
     this->imageOperators.clear();
 }
 
+/** \brief Swaps image operators indices.
+ *
+ *  Swaps image operator at index 'index1' with the one at 'index2'.
+ *  Returns status indicator.
+ *
+ *  \param index1 Index of the first operator.
+ *  \param index2 Index of the second operator.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::op_swap(uint8_t index1, uint8_t index2) {
 
     // Indices in list bounds.
@@ -102,6 +129,13 @@ uint8_t ImgOpExecutor::op_swap(uint8_t index1, uint8_t index2) {
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Find first operator of given type.
+ *
+ *  Finds the first operator of type 'opType' and returns its index, if existing.
+ *
+ *  \param opType Operator type to search for.
+ *  \return Index of the operator.
+ */
 uint8_t ImgOpExecutor::op_firstIndexOf(uint8_t opType) {
 
     // Get iterator for operator instances.
@@ -121,23 +155,45 @@ uint8_t ImgOpExecutor::op_firstIndexOf(uint8_t opType) {
     return 0xFF;
 }
 
+/** \brief Append image capture.
+ *
+ *  Appends image capture 'capture' to list of captures.
+ *  Returns status indicator.
+ *
+ *  \param capture Capture to append.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::cap_append(shared_ptr<ImgCapture> capture) {
 
+    this->captureMutex.lock();
     // Last of the 256 possible indices is reserved.
     if(this->imageCaptures.size() < 0xFF) {
 
         if (capture) {
             this->imageCaptures.push_back(capture);
+            this->captureMutex.unlock();
             return EXEC_OK;
         }
 
+        this->captureMutex.unlock();
         return EXEC_INVALID_REFERENCE;
     }
 
+    this->captureMutex.unlock();
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Delete image capture.
+ *
+ *  Deletes image capture 'capture' from list of captures.
+ *  Returns status indicator.
+ *
+ *  \param capture Capture to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::cap_delete(shared_ptr<ImgCapture> capture) {
+
+    this->captureMutex.lock();
 
     // Pointer must not point to NULL.
     if (capture) {
@@ -150,6 +206,7 @@ uint8_t ImgOpExecutor::cap_delete(shared_ptr<ImgCapture> capture) {
 
             if (*delIt == capture) {
                 this->imageCaptures.erase(delIt);
+                this->captureMutex.unlock();
                 return EXEC_OK;
             }
 
@@ -157,42 +214,83 @@ uint8_t ImgOpExecutor::cap_delete(shared_ptr<ImgCapture> capture) {
         }
     }
 
+    this->captureMutex.unlock();
     return EXEC_INVALID_REFERENCE;
 }
 
+/** \brief Delete image capture.
+ *
+ *  Deletes image capture at index 'index' from list of captures.
+ *  Returns status indicator.
+ *
+ *  \param index Index of the capture to delete.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::cap_delete(uint8_t index) {
+
+    this->captureMutex.lock();
 
     // Index in list bounds.
     if ((uint32_t)index < this->imageCaptures.size()) {
 
         // Erase from list.
         this->imageCaptures.erase(this->imageCaptures.begin()+index);
+        this->captureMutex.unlock();
         return EXEC_OK;
     }
 
+    this->captureMutex.unlock();
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Clear image capture list.
+ *
+ *  Deletes all image captures from from list of captures.
+ */
 void ImgOpExecutor::cap_clear() {
+
+    this->captureMutex.lock();
 
     // Clear complete list.
     this->imageCaptures.clear();
+
+    this->captureMutex.unlock();
+
 }
 
+/** \brief Swaps image capture indices.
+ *
+ *  Swaps image capture at index 'index1' with the one at 'index2'.
+ *  Returns status indicator.
+ *
+ *  \param index1 Index of the first capture.
+ *  \param index2 Index of the second capture.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::cap_swap(uint8_t index1, uint8_t index2) {
+
+    this->captureMutex.lock();
 
     // Indices in list bounds.
     if (index1 < this->imageCaptures.size() && index2 < this->imageCaptures.size()) {
 
-        shared_ptr<ImgCapture> ptr1 = this->imageCaptures[index1];
-        shared_ptr<ImgCapture> ptr2 = this->imageCaptures[index2];
-        ptr1.swap(ptr2);
+        this->imageCaptures[index1].swap(this->imageCaptures[index2]);
 
+        this->captureMutex.unlock();
         return EXEC_OK;
     }
+
+    this->captureMutex.unlock();
     return EXEC_OUT_OF_BOUNDS;
 }
 
+/** \brief Find capture with given id.
+ *
+ *  Finds the first capture with id 'captureID'.
+ *
+ *  \param captureID Capture ID to search for.
+ *  \return Index of the capture.
+ */
 uint8_t ImgOpExecutor::cap_firstIndexOf(uint8_t captureID) {
 
     // Get iterator for capture instances.
@@ -213,6 +311,16 @@ uint8_t ImgOpExecutor::cap_firstIndexOf(uint8_t captureID) {
 
 }
 
+/** \brief Sets result.
+ *
+ *  Sets the result value identified by 'identifier' to value 'target'.
+ *  Creates the key-value pair, if not existing.
+ *  Returns status indicator.
+ *
+ *  \param identifier The result identifier.
+ *  \param target The result value.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::setResult(string identifier, shared_ptr<Value> &target) {
 
     this->producer.lock();
@@ -240,6 +348,15 @@ uint8_t ImgOpExecutor::setResult(string identifier, shared_ptr<Value> &target) {
 
 }
 
+/** \brief Gets result.
+ *
+ *  Gets the result value identified by 'identifier' and writes it to value 'target'.
+ *  Returns status indicator.
+ *
+ *  \param identifier The result identifier.
+ *  \param target The value instance to write the result to.
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::getResult(string identifier, shared_ptr<Value> &target) {
 
     this->producer.lock();
@@ -252,6 +369,39 @@ uint8_t ImgOpExecutor::getResult(string identifier, shared_ptr<Value> &target) {
     return status;
 }
 
+/** \brief Sets value.
+ *
+ *  Sets the value identified by 'identifier' to value 'target'.
+ *  Returns status indicator.
+ *
+ *  \param identifier The value identifier.
+ *  \param target The new value.
+ *  \return 0 in case of success, an error code otherwise.
+ */
+uint8_t ImgOpExecutor::setValue(string identifier, shared_ptr<Value> target) {
+
+    this->producer.lock();
+
+    // Get iterator for operator instances.
+    auto opIt = this->imageOperators.begin();
+
+    // Iterate list of execution.
+    while (opIt != this->imageOperators.end())
+
+        (*opIt)->setValue(identifier, target);
+
+    this->producer.unlock();
+
+    return OK;
+}
+
+/** \brief Executes image operations.
+ *
+ *  Iterates list of image operators executes their operations..
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t ImgOpExecutor::execute() {
 
     try {
@@ -261,23 +411,14 @@ uint8_t ImgOpExecutor::execute() {
         // At least primary image source exists.
         if (this->imageCaptures.size()) {
 
+            this->captureMutex.lock();
+
             // Next capture from camera + temp pointer for additional ones.
             shared_ptr<cv::Mat> newest(this->imageCaptures[0]->getFrame());
             shared_ptr<cv::Mat> temp;
 
             // 'newest' does not point to NULL.
             if (newest) {
-
-                /*
-                cerr << "ImgOpExecutor:                 operating on image of size " << newest->cols << "x" << newest->rows << endl;
-
-                cv::imshow("Received", *newest); //display road image
-
-                if (cv::waitKey(1) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
-                {
-                    cout << "esc key is pressed by user" << endl;
-                }
-                 */
 
                 // Get iterator for operator instances.
                 auto opIt = this->imageOperators.begin();
@@ -322,22 +463,25 @@ uint8_t ImgOpExecutor::execute() {
                     opIt++;
                 }
 
-            }
+                this->captureMutex.unlock();
+
+            } else this->captureMutex.unlock();
         }
 
         return resultCount;
 
     } catch(const std::system_error& e) {
         std::cout << "\033[1;31m ImgOpExecutor: Caught system_error with code \033[0m " << e.code()
-                                                          << " meaning " << e.what() << '\n';
+                                                                  << " meaning " << e.what() << '\n';
     }
 
     return 0;
 }
 
-
-
-
+/** \brief threads run method.
+ *
+ *  Run method of execution thread.
+ */
 int ImgOpExecutor::run() {
 
     while (!this->isTerminating()) {

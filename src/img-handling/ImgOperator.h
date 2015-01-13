@@ -8,11 +8,13 @@
 #ifndef IMGOPERATOR_H_
 #define IMGOPERATOR_H_
 
-#define ARG_SOURCE  "Source"
-#define ARG_CAPTURE "Capture"
+#define ARG_SOURCE      "Source"
+#define ARG_CAPTURE     "Capture"
+#define ARG_OP_ACTIVE   "Active"
 
 #define RES_ENCODED_JPEG        "Encoded JPEG"
 #define RES_PICTURE_IN_PICTURE  "Picture in Picture"
+#define RES_CURVE_RADIUS        "Curve Radius"
 
 #include "../ValContainer.h"
 
@@ -28,7 +30,8 @@ typedef enum {
     OP_COMPOSITE,
     OP_PICTURE_IN_PICTURE,
     OP_ENCODED_JPEG,
-    OP_PREPARE
+    OP_PREPARE,
+    OP_DETECT_CURVE
 } opType;
 
 using namespace std;

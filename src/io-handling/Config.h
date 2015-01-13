@@ -10,31 +10,33 @@
 
 #define COMMENT '#'
 #define KEY_VAL_DELIM '='
-#define VAL_VAL_DELIM ':'
+#define VAL_VAL_DELIM ','
+#define DEV_PATH "/dev/"
 
-#define EQUALS(SRC, POS, TARG)   SRC.compare(POS, sizeof(TARG)-1, TARG)
+#define EQUALS(SRC, POS, TARG)   (!SRC.compare(POS, sizeof(TARG)-1, TARG))
 
-#define OPT_TERMINAL    "terminal"
-#define OPT_SERV_RT     "serv-rt"
-#define OPT_SERV_NONRT  "serv-nonrt"
-#define OPT_CAPTURES    "captures"
-#define OPT_GPS         "gps"
-#define OPT_ACC         "acc"
-#define OPT_LOG_PREFIX  "log"
-#define OPT_STATUS      "-status"
-#define OPT_FAIL        "-failure"
-#define OPT_POS         "-position"
-#define OPT_VALOCITY    "-velocity"
-#define OPT_EVENT       "-event"
-#define OPT_UNKNOWN     "unknown"
+#define OPT_OBU_ID      "obu-id"
+#define OPT_REAL_ADDR   "rt-addr"
+#define OPT_REAL_IFACE  "rt-iface"
+#define OPT_DEF_ADDR    "def-addr"
+#define OPT_DEF_IFACE   "def-iface"
+#define OPT_CAP_OUT     "cap-out"
+#define OPT_CAP_IN      "cap-in"
+#define OPT_CAP_PRIME   "cap-prime"
+#define OPT_CAP_COMP    "cap-comp"
+#define OPT_GPS_DEV     "gps-dev"
+#define OPT_GPS_TYPE    "gps-type"
+#define OPT_ACC_DEV     "acc-dev"
+#define OPT_ACC_TYPE    "acc-type"
+#define OPT_OBD_DEV     "obd-dev"
 
 #define GPS_ADAFRUIT    "adafruit"
 
 #define ACC_MPU6050     "mpu6050"
 
 #include "instances/IOfile.h"
-#include "../Child.h"
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -42,109 +44,141 @@
 #include <unordered_set>
 
 #include <cstdint>
+#include <cstring>
 
 typedef enum {
     CONF_OK,
-    CONF_ERR_IO,
-    CONF_ERR_NO_VALUE
-}confState;
+    CONF_ERR_NO_SUCH_FILE,
+    CONF_ERR_READ,
+    CONF_ERR_UNKNOWN_OPT,
+    CONF_ERR_ALREADY_SET,
+    CONF_ERR_TUPLE,
+    CONF_ERR_COUNT_MISMATCH,
+    CONF_ERR_INVALID,
+    CONF_ERR_UNSET
+}conf_return;
 
 typedef enum {
-    GPS_TYPE_ADAFRUIT
+    T_ADAFRUIT
 }gpsTypes;
 
 typedef enum {
-    ACC_TYPE_MPU6050
+    T_MPU6050
 }accTypes;
 
 typedef struct terminal {
     string path;
     uint32_t baud;
-    bool status;
-    bool error;
-    bool pos;
-    bool vel;
-    bool event;
 }terminal;
 
 typedef struct server {
-    string address;
+    string target;
     string port;
     string iface;
 }server;
 
-typedef struct captures {
-    uint16_t outer;
-    uint16_t inner;
-    uint16_t primary;
-}captures;
+typedef struct capture {
+    uint8_t index;
+    uint8_t fps;
+}capture;
 
-typedef struct gps {
+typedef struct i2cDev {
+    string path;
+    uint8_t addr;
+}i2cDev;
+
+typedef struct uartDev {
     string path;
     uint32_t baud;
-    uint8_t type;
-}gpsModule;
-
-typedef struct acc {
-    string path;
-    uint32_t addr;
-    uint8_t type;
-}accelerometer;
+}uartDev;
 
 using namespace std;
 
-class Config : public Child {
+class Config {
 public:
 
     Config(string path);
     virtual ~Config();
 
-    virtual int run();
-
     uint8_t load();
-    uint8_t save();
+    // uint8_t save();
 
+    // Getters.
+    vector<string> getErrors();
+    bool getDeviceID(uint8_t &devID);
     uint8_t getTermCount();
     bool getTermAt(uint8_t index, terminal &term);
-    void getServRT(server &serv);
-    void getServNonRT(server &serv);
-    int16_t getOuterCap();
-    int16_t getInnerCap();
-    int16_t getPrimaryCap();
+    bool getRealTime(server &serv);
+    bool getDeferred(server &serv);
+    bool getInnerCap(capture &cap);
+    bool getOuterCap(capture &cap);
+    bool getPrimeCap(uint8_t &index);
+    bool getJpegCompression(uint8_t &comp);
+    bool getAccType(uint8_t &type);
+    bool getAcc(i2cDev &dev);
+    bool getGPSType(uint8_t &type);
+    bool getGPS(uartDev &dev);
+    bool getOBD(uartDev &dev);
 
-    void getGPS(gps &module);
-    void getAcc(acc &module);
+    static void tokenize(string source, vector<string> &target, char delim);
+    static bool shrink(string &target, string compare, size_t start, bool substr=false);
+    static bool toInteger(string source, int64_t max, int64_t min, int64_t &target);
 
 private:
 
     IOfile file;
 
-    unordered_map<string, string> optErr;
-    unordered_map<string, string> config;
+    // List of parsing errors.
+    vector<string> errors;
 
-    vector<terminal> terminals;
-    server realtime, non_realtime;
-    captures caps;
-    gps gps_Module;
-    acc acc_Module;
+    // List of already parsed options.
+    unordered_set<string> parsed;
 
-    static void tokenize(string source, vector<string> &target, char delim);
-    static void prepare(string source, vector<string> &target);
-    uint8_t process(vector<string> &source /*, unordered_map<string, string> &optErr*/);
+    // OBU device id.
+    uint8_t devID;
 
-    static bool procTerm(string key, string value, terminal &term, stringstream &failures);
-    static bool procServ(string key, string value, server &serv, stringstream &failures);
-    static bool procCaps(string key, string value, captures &caps, stringstream &failures);
-    static bool procGPS(string key, string value, gps &gps, stringstream &failures);
-    static bool procAcc(string key, string value, acc &acc, stringstream &failures);
+    // Realtime / deferred server properties.
+    server realtime, deferred;
 
+    // Capture structures and primary capture index.
+    capture outer, inner;
+    uint8_t capPrimary;
 
-    static void insertOrAppend(unordered_map<string, string> &optErr, string key, stringstream &value);
-    static void printTermNote(stringstream &stream);
-    static void printServNote(stringstream &stream);
-    static void printCapsNote(stringstream &stream);
-    static void printGPSNote(stringstream &stream);
-    static void printAccNote(stringstream &stream);
+    // JPEG compression quality.
+    uint8_t comp;
+
+    // Accelerometer (typically i2c)
+    uint8_t accType;
+    i2cDev acc;
+
+    // GPS sensor (typically uart)
+    uint8_t gpsType;
+    uartDev gps;
+
+    // OBD module.
+    uartDev obd;
+
+    // Parsing helper methods.
+    static vector<string> getLines(string source);
+    static bool toKeyValue(string source, vector<string> &target);
+    static void toAbsPath(string source, string &target);
+    static string toString(string option, uint8_t status);
+
+    // Process functions.
+    void process(string source);
+    bool validate();
+    static uint8_t procID(vector<string> source, uint8_t &devId);
+    static uint8_t procTerm(vector<string> source, terminal &term);
+    static uint8_t procSvr(vector<string> source, server &server);
+    static uint8_t procIface(vector<string> source, server &server);
+    static uint8_t procCapture(vector<string> source, capture &capture);
+    static uint8_t procPrimary(vector<string> source, uint8_t &prime);
+    static uint8_t procCompression(vector<string> source, uint8_t &comp);
+    static uint8_t procAcc(vector<string> source, i2cDev &acc);
+    static uint8_t procAccType(vector<string> source, uint8_t &accType);
+    static uint8_t procGPS(vector<string> source, uartDev &gps);
+    static uint8_t procGPSType(vector<string> source, uint8_t &gpsType);
+    static uint8_t procOBD(vector<string> source, uartDev &obd);
 
 };
 

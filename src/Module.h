@@ -12,6 +12,7 @@
 #include "msg-handling/MsgHub.h"
 #include "msg-handling/Observer.h"
 
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -28,7 +29,6 @@ public:
     // Instantiation.
     Module();
     virtual ~Module();
-    // virtual bool setup()=0;
     thread* createThread();
     int run();
 
@@ -41,8 +41,11 @@ public:
     bool isTerminating();
 
     void addChild(shared_ptr<Child> child);
+    void deleteChild(shared_ptr<Child> child);
     void attachChildToMsg(shared_ptr<Child> observer, uint8_t type);
     void detachChildFromMsg(shared_ptr<Child> observer, uint8_t type);
+    uint8_t getChildCount();
+    void runChild(uint8_t index);
 
     unordered_set<shared_ptr<Child>>::iterator getChildrenBegin(uint8_t msgType);
     unordered_set<shared_ptr<Child>>::iterator getChildrenEnd(uint8_t msgType);
@@ -62,7 +65,7 @@ private:
     shared_ptr<condition_variable> condition;
     shared_ptr<mutex> waitMutex;
     queue<shared_ptr<Msg>> sendBuf;
-    unordered_set<shared_ptr<Child>> children;
+    vector<shared_ptr<Child>> children;
     unordered_set<shared_ptr<thread>> childThreads;
     unordered_map<uint8_t, unordered_set<shared_ptr<Child>>> map_MsgType_Child;
     bool terminating;

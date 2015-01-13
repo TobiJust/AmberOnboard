@@ -27,7 +27,6 @@ public:
 
 protected:
     virtual uint8_t forward(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet);
-    virtual uint8_t backward(shared_ptr<deque<uint8_t>> packet);
     virtual uint8_t backward(shared_ptr<vector<uint8_t>> packet,
             uint8_t *&begin,
             uint8_t *&end);
@@ -55,7 +54,6 @@ private:
     uint8_t pullPayloadLength(shared_ptr<deque<uint8_t>> packet, uint32_t* pl_Length);
     uint8_t pullPayload(shared_ptr<deque<uint8_t>> packet, uint32_t pl_Length, uint8_t* checksum);
     uint8_t pullFrameEnd(shared_ptr<deque<uint8_t>> packet, uint32_t pl_Length);
-    timeval step1, step2;
     deque<uint8_t> tail;
 };
 

@@ -44,6 +44,7 @@ public:
 
     uint8_t setResult(string identifier, shared_ptr<Value> &target);
     uint8_t getResult(string identifier, shared_ptr<Value> &target);
+    uint8_t setValue(string identifier, shared_ptr<Value> target);
 
     uint8_t cap_append(shared_ptr<ImgCapture> capture);
     uint8_t cap_delete(shared_ptr<ImgCapture> capture);
@@ -66,7 +67,7 @@ protected:
     vector<shared_ptr<ImgOperator>> imageOperators;
     vector<shared_ptr<ImgCapture>> imageCaptures;
     ResultContainer results;
-    mutex producer;
+    mutex producer, captureMutex;
 
 
 

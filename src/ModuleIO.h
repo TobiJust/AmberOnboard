@@ -10,9 +10,7 @@
 
 #include "Module.h"
 #include "io-handling/Config.h"
-// #include "io-handling/IOHandler.h"
-// #include "io-handling/StreamIO.h"
-// #include "io-handling/Terminal.h"
+#include "io-handling/SensorIO.h"
 
 #include <iostream>
 
@@ -22,18 +20,14 @@ class ModuleIO : public Module {
 public:
     ModuleIO();
     virtual ~ModuleIO();
-
-    virtual bool setup();
-
-    void createStreamTerminal(istream& input, ostream& output);
-    // void createTerminal(shared_ptr<IOHandler> hndl);
+    void setSensorIO(shared_ptr<SensorIO> sensors);
 
 protected:
 
     // Config conf;
-    // shared_ptr<Terminal> term;
+    shared_ptr<SensorIO> sensors;
 
-    void createTerminal(string path, uint32_t baud);
+    shared_ptr<ValString> createValue(unordered_map<string, string> &data, string string);
 
     virtual uint8_t countMsgFromChildren();
     virtual uint8_t pollMsgFromChildren();

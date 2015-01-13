@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['data',['data',['../classSensorIO.html#a2a1b88b0583d7d6f3ade4b5b4d0dfaf7',1,'SensorIO']]],
+  ['data_5ftype_5fevent_5fdata',['DATA_TYPE_EVENT_DATA',['../ProcPayload_8h.html#a3a8a0d1a16217d7917277c712cf02f5c',1,'ProcPayload.h']]],
+  ['data_5ftype_5fimg',['DATA_TYPE_IMG',['../ProcPayload_8h.html#ac65f553b082743c86fd7804a3e22877f',1,'ProcPayload.h']]],
+  ['data_5ftype_5fother',['DATA_TYPE_OTHER',['../ProcPayload_8h.html#acb01d505aff150dbcdb2c895a1a096e8',1,'ProcPayload.h']]],
+  ['data_5ftype_5ftelemetry',['DATA_TYPE_TELEMETRY',['../ProcPayload_8h.html#a32ecab6b3e13dfe1da91217495a2ddb3',1,'ProcPayload.h']]],
+  ['deferred',['deferred',['../classConfig.html#a7e99f79dda6056ad08065017e2800884',1,'Config']]],
+  ['deletechild',['deleteChild',['../classModule.html#ab99d1828f56c635c48767b33f4309452',1,'Module']]],
+  ['deletekey',['deleteKey',['../classValContainer.html#a1ac533903405e6cfbab093db87368262',1,'ValContainer']]],
+  ['detachchildfrommsg',['detachChildFromMsg',['../classModule.html#af8faef69d84cd505d0912aded3ceec1c',1,'Module']]],
+  ['detachobserver',['detachObserver',['../classChild.html#a231d19a2867c77ee0ba9576b055019b8',1,'Child']]],
+  ['detachobserverfrommsg',['detachObserverFromMsg',['../classMsgHub.html#ae37817223ca70e39dcb6e047f2d4484f',1,'MsgHub']]],
+  ['dev_5fpath',['DEV_PATH',['../Config_8h.html#a671e6b4489b01d7f3c63372b1b89b232',1,'Config.h']]],
+  ['devaddr',['devAddr',['../classMPU6050.html#ad248bbf6e9da395ab67f7049b50ae474',1,'MPU6050']]],
+  ['device',['Device',['../classDevice.html',1,'Device'],['../classDevice.html#a64ba12dcc5f4267486c5d545d04dcf68',1,'Device::Device()'],['../classGpsAdafruit.html#a59e35eab02985f1a22cc419486fe41a8',1,'GpsAdafruit::device()'],['../classOBDReader.html#a4ebc3551edcc89e0005bfac7b2bb08e0',1,'OBDReader::device()']]],
+  ['device_2ecpp',['Device.cpp',['../Device_8cpp.html',1,'']]],
+  ['device_2eh',['Device.h',['../Device_8h.html',1,'']]],
+  ['devices',['devices',['../classSensorIO.html#ad8a3cbb3d0abd1bd654ce700041af78a',1,'SensorIO']]],
+  ['devid',['devID',['../classConfig.html#a03682978a59b405be984d1eb36da538b',1,'Config::devID()'],['../classProcPayload.html#a91d83542a1927aff42b6d2a07c528eb4',1,'ProcPayload::devID()']]],
+  ['dgpsage',['dgpsAge',['../structgga.html#acb071462a2b39720d071b346d3069bbd',1,'gga']]],
+  ['dgpsref',['dgpsRef',['../structgga.html#a5054be3ebadeffea69ed55cddf76a89b',1,'gga']]],
+  ['difference',['difference',['../classOpAcceleration.html#a0274cbd272ffa30cffec1e0c758f53e4',1,'OpAcceleration::difference()'],['../classOpGyroscope.html#a0a88b2a8379321a1e3cfabecbef3c708',1,'OpGyroscope::difference()']]],
+  ['drawlines',['drawLines',['../classOpCurveDetection.html#a80bce686be0d6eb20f90571e7b1cb36b',1,'OpCurveDetection']]],
+  ['drawpolynomials',['drawPolynomials',['../classOpCurveDetection.html#a8ceef47dc3ba1a644935e189ee234b91',1,'OpCurveDetection']]]
+];

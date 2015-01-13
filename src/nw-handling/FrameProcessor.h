@@ -8,7 +8,6 @@
 #ifndef FRAMEPROCESSOR_H_
 #define FRAMEPROCESSOR_H_
 
-// #define IMG_BLOCK_SIZE 65532
 #define PAYLOAD_SIZE    65536
 #define FRAME_SIZE      PAYLOAD_SIZE+9
 
@@ -32,6 +31,7 @@ typedef enum {
     NW_ERR_BIND,
     NW_ERR_CONNECT,
     NW_ERR_SEND,
+    NW_ERR_RECV,
     NW_ERR_SEQUENCE_MISMATCH,
     NW_ERR_NO_SUCCESSOR,
     NW_ERR_NOT_ENOUGH_CHARS,
@@ -48,7 +48,6 @@ public:
     virtual ~FrameProcessor();
     bool isFrontType();
     uint8_t transmit(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet);
-    uint8_t receive(shared_ptr<deque<uint8_t>> packet);
     uint8_t receive(shared_ptr<vector<uint8_t>> packet,
             uint8_t *&begin,
             uint8_t *&end);
@@ -57,7 +56,6 @@ public:
 
 protected:
     virtual uint8_t forward(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet)=0;
-    virtual uint8_t backward(shared_ptr<deque<uint8_t>> packet)=0;
     virtual uint8_t backward(shared_ptr<vector<uint8_t>> packet,
             uint8_t *&begin,
             uint8_t *&end)=0;
@@ -74,20 +72,13 @@ public:
     FrontProcessor(shared_ptr<FrameProcessor> successor);
     virtual ~FrontProcessor()=0;
     virtual uint8_t push(shared_ptr<Message_M2C> output)=0;
-    //virtual uint8_t pull(shared_ptr<DataField> input)=0;
     virtual uint8_t pull(shared_ptr<Message_M2C> &input)=0;
-    // void addOutput(shared_ptr<DataField> output);
-    // shared_ptr<DataField> getInput();
 
 protected:
     virtual uint8_t forward(shared_ptr<deque<shared_ptr<vector<uint8_t>>>> packet);
-    virtual uint8_t backward(shared_ptr<deque<uint8_t>> packet);
     virtual uint8_t backward(shared_ptr<vector<uint8_t>> packet,
             uint8_t *&begin,
             uint8_t *&end);
-
-    // void addInput(shared_ptr<DataField> output);
-    // shared_ptr<DataField> getOutput();
 
 private:
 

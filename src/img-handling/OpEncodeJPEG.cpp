@@ -1,32 +1,42 @@
-/*
- * OpEncodeJPEG.cpp
+/** \brief      Class for JPEG encoding.
  *
- *  Created on: 19.11.2014
- *      Author: Askar Massalimov
+ * \details     Class for encode mat object as JPEG image.
+ * \author      Askar Massalimov
+ * \version     2014-11-19
+ * \class       OpEncodeJPEG
  */
 
 #include "OpEncodeJPEG.h"
 
-#include <iostream>
-
+/** \brief Constructor.
+ *
+ *  Constructor of OpEncodeJPEG instances.
+ */
 OpEncodeJPEG::OpEncodeJPEG() : ImgOperator(OP_ENCODED_JPEG, 1) {
 
     // Create argument list.
     createValue(ARG_JPEG_QUALITY, shared_ptr<ValInt>(new ValInt(50)));
-
 }
 
-OpEncodeJPEG::~OpEncodeJPEG() {
+/** \brief Destructor.
+ *
+ *  Destructor of OpEncodeJPEG instances.
+ */
+OpEncodeJPEG::~OpEncodeJPEG() { }
 
-}
-
+/** \brief Process operation.
+ *
+ *  Encodes the Mat object passed by capture ID 0 as JPEG image.
+ *  Returns status indicator.
+ *
+ *  \return 0 in case of success, an error code otherwise.
+ */
 uint8_t OpEncodeJPEG::process(unordered_map<string,shared_ptr<Value>> &results) {
 
 
     // Get source image argument.
     shared_ptr<Value> src_Val;
     uint8_t status = getValue(this->captureIDs[0], src_Val);
-    // cerr << "OpEncodeJPEG: (" << this << ") got called with source " << this->captureIDs[0] << endl;
 
     // An error occured.
     if( status != OK )
@@ -46,27 +56,12 @@ uint8_t OpEncodeJPEG::process(unordered_map<string,shared_ptr<Value>> &results) 
     jpegParams.push_back(CV_IMWRITE_JPEG_QUALITY); //jpeg quality
     jpegParams.push_back((dynamic_pointer_cast<ValInt>(quali_Value))->getValue()); //is equal ...
 
-    // *source=cv::Scalar(100,0,0);
-
-    /*
-    cv::imshow("OpEncodeJPEG", *source); //display road image
-    if (cv::waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
-    {
-        cout << "esc key is pressed by user" << endl;
-        throw 20;
-    }
-     */
-
     // Encode image as JPEG.
     shared_ptr<vector<uint8_t>> target(new vector<uint8_t>);
     imencode(".jpg", *source, *target, jpegParams);
 
     // Create result Value and add it to list of results.
-    // ValVectorUChar* result = new ValVectorUChar();
-    // result->setValue(target);
     results.insert(make_pair(RES_ENCODED_JPEG, shared_ptr<ValVectorUChar>(new ValVectorUChar(target))));
-
-    // cerr << "OpEncodeJPEG: Done" << endl;
 
     return OK;
 
